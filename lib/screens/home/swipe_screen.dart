@@ -1,0 +1,293 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import '../../services/job_service.dart';
+import '../../services/firestore_service.dart';
+import '../../models/job_model.dart';
+import '../../config/colors.dart';
+import '../../widgets/job_card.dart';
+
+class SwipeScreen extends StatefulWidget {
+  const SwipeScreen({super.key});
+
+  @override
+  State<SwipeScreen> createState() => _SwipeScreenState();
+}
+
+class _SwipeScreenState extends State<SwipeScreen> {
+  final JobService _jobService = JobService();
+  final FirestoreService _firestoreService = FirestoreService();
+  final CardSwiperController _swiperController = CardSwiperController();
+  
+  List<JobModel> _jobs = [];
+  bool _isLoading = false;
+  int _currentIndex = 0;
+  List<JobModel> _rejectedJobs = [];
+  List<JobModel> _savedJobs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadJobs();
+  }
+
+  Future<void> _loadJobs() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final jobs = await _jobService.searchJobs(
+        query: 'Softwareentwickler',
+        location: 'Deutschland',
+      );
+      
+      setState(() {
+        _jobs = jobs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Laden der Jobs: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _onSwipe(int? previousIndex, int? currentIndex, CardSwiperDirection direction) {
+    if (previousIndex != null && previousIndex < _jobs.length) {
+      if (direction == CardSwiperDirection.left) {
+        _rejectJob(_jobs[previousIndex]);
+      } else if (direction == CardSwiperDirection.right) {
+        _saveJob(_jobs[previousIndex]);
+      }
+    }
+    
+    setState(() {
+      _currentIndex = currentIndex ?? 0;
+    });
+  }
+
+  void _rejectJob(JobModel job) async {
+    try {
+      await _firestoreService.saveRejectedJob(job);
+      setState(() {
+        _rejectedJobs.add(job);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${job.title} abgelehnt'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Speichern: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _saveJob(JobModel job) async {
+    try {
+      await _firestoreService.saveJob(job);
+      setState(() {
+        _savedJobs.add(job);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${job.title} gespeichert'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Fehler beim Speichern: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _undoLastAction() async {
+    if (_currentIndex > 0 && (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)) {
+      JobModel? lastJob;
+      String? lastAction;
+      
+      // Get the last action
+      if (_savedJobs.isNotEmpty) {
+        lastJob = _savedJobs.removeLast();
+        lastAction = 'saved';
+      } else if (_rejectedJobs.isNotEmpty) {
+        lastJob = _rejectedJobs.removeLast();
+        lastAction = 'rejected';
+      }
+      
+      if (lastJob != null) {
+        // Remove from Firestore
+        if (lastAction == 'saved') {
+          await _firestoreService.removeJob(lastJob.id);
+        } else {
+          // For rejected jobs, we don't need to do anything special
+        }
+        
+        // Add job back to the beginning of the list
+        setState(() {
+          _jobs.insert(0, lastJob!);
+          _currentIndex = 0;
+        });
+        
+        // Reset swiper to show the first card
+        // Note: CardSwiperController doesn't have a move method
+        // The swiper will automatically show the first card when _currentIndex is 0
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${lastJob.title} rückgängig gemacht'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Linku'),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadJobs,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : _jobs.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.work_outline,
+                        size: 64,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Keine Jobs gefunden',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Versuche es später erneut',
+                        style: TextStyle(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadJobs,
+                        child: const Text('Erneut versuchen'),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    // Progress indicator
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${_currentIndex + 1} von ${_jobs.length}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.undo),
+                              onPressed: _undoLastAction,
+                              tooltip: 'Rückgängig',
+                            ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Swipe cards
+                    Expanded(
+                      child: CardSwiper(
+                        controller: _swiperController,
+                        cardsCount: _jobs.length,
+                        onSwipe: _onSwipe,
+                        cardBuilder: (context, index) {
+                          if (index >= _jobs.length) return null;
+                          return JobCard(job: _jobs[index]);
+                        },
+                      ),
+                    ),
+                    
+                    // Action buttons
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Reject button
+                          FloatingActionButton(
+                            heroTag: 'reject',
+                            onPressed: () {
+                              _swiperController.swipeLeft();
+                            },
+                            backgroundColor: AppColors.error,
+                            child: const Icon(Icons.close, color: Colors.white),
+                          ),
+                          
+                          // Save button
+                          FloatingActionButton(
+                            heroTag: 'save',
+                            onPressed: () {
+                              _swiperController.swipeRight();
+                            },
+                            backgroundColor: AppColors.success,
+                            child: const Icon(Icons.favorite, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+}
