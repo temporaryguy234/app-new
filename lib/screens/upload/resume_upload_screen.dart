@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/resume_service.dart';
 import '../../services/auth_service.dart';
 import '../../config/colors.dart';
+import '../scoring/resume_scoring_screen.dart';
 
 class ResumeUploadScreen extends StatefulWidget {
   const ResumeUploadScreen({super.key});
@@ -61,7 +62,7 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
     });
 
     try {
-      await _resumeService.analyzeResume(userId, resumeUrl);
+      final analysis = await _resumeService.analyzeResume(userId, resumeUrl);
       
       setState(() {
         _uploadStatus = 'Analyse abgeschlossen!';
@@ -75,7 +76,12 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.of(context).pop();
+        // Direkt die Analyse anzeigen statt nur zurück zu navigieren
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ResumeScoringScreen(analysis: analysis),
+          ),
+        );
       }
       
     } catch (e) {

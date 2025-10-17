@@ -21,10 +21,9 @@ void main() async {
   // Initialize Gemini Model
   final generativeModel = FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-flash');
   
-  // 🧪 TESTE ANALYSE-SYSTEM (nur in Debug-Modus)
+  // 🧪 TESTE ANALYSE-SYSTEM (nur im Debug-Modus, nicht blockierend)
   if (kDebugMode) {
-    print('🧪 Starte Analyse-System Test...');
-    await TestAnalysisService.runFullTest();
+    Future.microtask(() => TestAnalysisService.runFullTest());
   }
   
   runApp(LinkuApp(generativeModel: generativeModel));

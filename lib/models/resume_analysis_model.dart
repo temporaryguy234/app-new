@@ -13,6 +13,7 @@ class ResumeAnalysisModel {
   final List<String> industries;
   final String summary;
   final String location;
+  final String? postalCode;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -29,26 +30,30 @@ class ResumeAnalysisModel {
     required this.industries,
     required this.summary,
     required this.location,
+    this.postalCode,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory ResumeAnalysisModel.fromMap(Map<String, dynamic> map) {
     return ResumeAnalysisModel(
-      id: map['id'] as String,
-      userId: map['userId'] as String,
-      resumeUrl: map['resumeUrl'] as String,
-      score: (map['score'] as num).toDouble(),
-      strengths: List<String>.from(map['strengths'] ?? []),
-      improvements: List<String>.from(map['improvements'] ?? []),
-      skills: List<String>.from(map['skills'] ?? []),
-      yearsOfExperience: map['yearsOfExperience'] as int,
-      experienceLevel: map['experienceLevel'] as String,
-      industries: List<String>.from(map['industries'] ?? []),
-      summary: map['summary'] as String,
-      location: map['location'] as String? ?? 'Unbekannt',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      id: (map['id'] ?? DateTime.now().millisecondsSinceEpoch.toString()).toString(),
+      userId: (map['userId'] ?? '').toString(),
+      resumeUrl: (map['resumeUrl'] ?? '').toString(),
+      score: _toDouble(map['score']) ?? 0.0,
+      strengths: _toStringList(map['strengths']),
+      improvements: _toStringList(map['improvements']),
+      skills: _toStringList(map['skills']),
+      yearsOfExperience: _toInt(map['yearsOfExperience']) ?? 0,
+      experienceLevel: (map['experienceLevel'] ?? 'entry').toString(),
+      industries: _toStringList(map['industries']),
+      summary: (map['summary'] ?? '').toString(),
+      location: (map['location'] ?? 'Unbekannt').toString(),
+      postalCode: (map['postalCode'] ?? map['zip'] ?? '').toString().trim().isEmpty
+          ? null
+          : (map['postalCode'] ?? map['zip']).toString(),
+      createdAt: _toDate(map['createdAt']) ?? DateTime.now(),
+      updatedAt: _toDate(map['updatedAt']) ?? DateTime.now(),
     );
   }
 
@@ -66,9 +71,53 @@ class ResumeAnalysisModel {
       'industries': industries,
       'summary': summary,
       'location': location,
+      if (postalCode != null && postalCode!.isNotEmpty) 'postalCode': postalCode,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
+  }
+
+  // ---- Safe parsing helpers (UI resilience) ----
+  static double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
+  static int? _toInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
+
+  static DateTime? _toDate(dynamic v) {
+    try {
+      if (v == null) return null;
+      if (v is Timestamp) return v.toDate();
+      if (v is DateTime) return v;
+      if (v is String) return DateTime.tryParse(v);
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static List<String> _toStringList(dynamic v) {
+    if (v == null) return <String>[];
+    if (v is List) {
+      return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+    }
+    if (v is String) {
+      return v
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+    return <String>[];
   }
 
   String get scoreText {
