@@ -12,6 +12,7 @@ class ResumeAnalysisModel {
   final String experienceLevel;
   final List<String> industries;
   final String summary;
+  final String location;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +28,7 @@ class ResumeAnalysisModel {
     required this.experienceLevel,
     required this.industries,
     required this.summary,
+    required this.location,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -44,6 +46,7 @@ class ResumeAnalysisModel {
       experienceLevel: map['experienceLevel'] as String,
       industries: List<String>.from(map['industries'] ?? []),
       summary: map['summary'] as String,
+      location: map['location'] as String? ?? 'Unbekannt',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -62,6 +65,7 @@ class ResumeAnalysisModel {
       'experienceLevel': experienceLevel,
       'industries': industries,
       'summary': summary,
+      'location': location,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };

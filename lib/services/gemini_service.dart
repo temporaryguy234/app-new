@@ -4,6 +4,54 @@ import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/resume_analysis_model.dart';
 
+// Helper casts for robust JSON parsing from LLMs
+num? _asNum(dynamic value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value);
+  return null;
+}
+
+List<String> _asStrings(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value
+        .map((e) => e?.toString() ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+  if (value is String) {
+    return value
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+  return [];
+}
+
+String _toEnglishCountry(String s) {
+  final l = s.toLowerCase();
+  if (l.contains('deutschland') || l == 'de') return 'Germany';
+  if (l.contains('österreich') || l == 'at' || l.contains('austria')) return 'Austria';
+  if (l.contains('schweiz') || l == 'ch' || l.contains('switzerland')) return 'Switzerland';
+  return s;
+}
+
+String _normalizeResumeLocationToEnglish(dynamic v) {
+  final raw = v?.toString().trim() ?? '';
+  if (raw.isEmpty) return 'Unbekannt';
+  final parts = raw.split(',').map((s) => s.trim()).toList();
+  if (parts.length >= 2) {
+    final city = parts.first;
+    final countryEn = _toEnglishCountry(parts.sublist(1).join(', '));
+    return '$city, $countryEn';
+  }
+  return raw
+      .replaceAll(RegExp(r'Deutschland', caseSensitive: false), 'Germany')
+      .replaceAll(RegExp(r'Österreich', caseSensitive: false), 'Austria')
+      .replaceAll(RegExp(r'Schweiz', caseSensitive: false), 'Switzerland');
+}
+
 class GeminiService {
   final GenerativeModel _model;
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -18,8 +66,18 @@ class GeminiService {
       final prompt = _createAnalysisPrompt(resumeText);
       print('📝 Prompt erstellt, starte Firebase AI Call...');
       
-      final response = await _model.generateContent([Content.text(prompt)]);
+      final response = await _model.generateContent(
+        [Content.text(prompt)],
+        generationConfig: GenerationConfig(
+          temperature: 0.0,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+        ),
+      );
       final text = response.text ?? '';
+      if (text.trim().isEmpty) {
+        print('⚠️ Firebase AI lieferte leeren Text (max_tokens). Fallback wird verwendet.');
+      }
       print('✅ Firebase AI Response erhalten: ${text.length} Zeichen');
       
       final analysis = _parseAnalysisResponse(text, userId, resumeUrl);
@@ -53,7 +111,8 @@ class GeminiService {
         "yearsOfExperience": number,
         "industries": [string],
         "summary": string,
-        "experienceLevel": "entry" | "mid" | "senior" | "expert"
+        "experienceLevel": "entry" | "mid" | "senior" | "expert",
+        "location": "string"               // Aktueller Standort (Stadt, Land)
       }
 
       Bewertungskriterien:
@@ -65,6 +124,7 @@ class GeminiService {
       - industries: 2-3 relevante Branchen
       - summary: Kurze Zusammenfassung des Profils
       - experienceLevel: entry (0-2 Jahre), mid (3-5 Jahre), senior (6-10 Jahre), expert (10+ Jahre)
+      - location: Aktueller Standort aus dem Lebenslauf (Stadt, Land) - z.B. "München, Deutschland", "Wien, Österreich", "Zürich, Schweiz"
       """;
 
       print('📝 Multimodaler Prompt erstellt, starte Firebase AI Call...');
@@ -73,13 +133,16 @@ class GeminiService {
       final response = await _model.generateContent(
         [Content.multi([TextPart(prompt), InlineDataPart('application/pdf', bytes)])],
         generationConfig: GenerationConfig(
-          temperature: 0.2,
-          maxOutputTokens: 1024,
+          temperature: 0.0,
+          maxOutputTokens: 2048,
           responseMimeType: 'application/json',
         ),
       );
       
       final text = response.text ?? '{}';
+      if (text.trim().isEmpty) {
+        print('⚠️ Firebase AI lieferte leeren Text (max_tokens). Fallback wird verwendet.');
+      }
       print('✅ Firebase AI Response erhalten: ${text.length} Zeichen');
       
       final analysis = _parseAnalysisResponse(text, userId, pdfUrl);
@@ -144,7 +207,7 @@ Bewertungskriterien:
 
   ResumeAnalysisModel _parseAnalysisResponse(String response, String userId, String resumeUrl) {
     try {
-      print('🔍 Raw Response: ${response.substring(0, 100)}...');
+      print('🔍 Raw Response: ${response.substring(0, response.length.clamp(0, 100))}...');
       
       // Clean the response to extract JSON
       String cleanResponse = response.trim();
@@ -165,29 +228,26 @@ Bewertungskriterien:
       
       // Additional cleaning for newlines
       cleanResponse = cleanResponse.trim();
-      print('🔍 Cleaned Response: ${cleanResponse.substring(0, 100)}...');
+      print('🔍 Cleaned Response: ${cleanResponse.substring(0, cleanResponse.length.clamp(0, 100))}...');
       
       final Map<String, dynamic> data = jsonDecode(cleanResponse);
-      
-      // Handle both old and new score format
-      double score = data['score'] ?? 50.0;
-      if (data['overallScore'] != null) {
-        score = (data['overallScore'] as num).toDouble() * 10.0;
-        print('⚠️ Warnung: overallScore gefunden, konvertiert zu score: $score');
-      }
-      
+
+      final double score = (_asNum(data['score'])?.toDouble()) ?? 50.0;
+      final int years = (_asNum(data['yearsOfExperience'])?.toInt()) ?? 0;
+
       return ResumeAnalysisModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         userId: userId,
         resumeUrl: resumeUrl,
         score: score,
-        strengths: List<String>.from(data['strengths'] ?? []),
-        improvements: List<String>.from(data['improvements'] ?? []),
-        skills: List<String>.from(data['skills'] ?? []),
-        yearsOfExperience: data['yearsOfExperience'] ?? 0,
-        experienceLevel: data['experienceLevel'] ?? 'entry',
-        industries: List<String>.from(data['industries'] ?? []),
-        summary: data['summary'] ?? 'Keine Zusammenfassung verfügbar',
+        strengths: _asStrings(data['strengths']),
+        improvements: _asStrings(data['improvements']),
+        skills: _asStrings(data['skills']),
+        yearsOfExperience: years,
+        experienceLevel: (data['experienceLevel']?.toString() ?? 'entry'),
+        industries: _asStrings(data['industries']),
+        summary: data['summary']?.toString() ?? 'Keine Zusammenfassung verfügbar',
+        location: _normalizeResumeLocationToEnglish(data['location']),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -205,6 +265,7 @@ Bewertungskriterien:
         experienceLevel: 'entry',
         industries: ['Allgemein'],
         summary: 'Grundlegende Analyse verfügbar',
+        location: 'Unbekannt',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

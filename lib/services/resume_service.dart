@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import '../models/resume_analysis_model.dart';
+import '../models/job_model.dart';
 import 'gemini_service.dart';
 import 'job_matching_service.dart';
 import 'resume_analysis_service.dart';
@@ -66,18 +67,39 @@ class ResumeService {
       final analysis = await _geminiService.analyzeResumeFromPdf(resumeUrl, userId);
       print('✅ PDF-Analyse abgeschlossen - Score: ${analysis.score}/100');
       
-      // Jobs basierend auf Analyse finden
+      // Jobs basierend auf Analyse finden – nur am erkannten Standort
       final jobService = JobService();
-      final allJobs = await jobService.searchJobs(
-        query: _generateJobQuery(analysis),
-        location: 'Deutschland',
-      );
-      print('💼 ${allJobs.length} Jobs gefunden');
-      
-      // Job-Matching
-      final jobMatchingService = JobMatchingService();
-      final matchedJobs = jobMatchingService.matchJobsWithAnalysis(allJobs, analysis);
-      print('🎯 ${matchedJobs.length} passende Jobs gematcht');
+      List<JobModel> allJobs = [];
+      try {
+        final loc = (analysis.location.isNotEmpty && analysis.location.toLowerCase() != 'unbekannt')
+            ? analysis.location
+            : 'Germany'; // Fallback, wenn keine Location erkannt
+
+        final queries = _generateJobQueries(analysis, limit: 6);
+        print('🔍 SERP Queries: ${queries.join(' | ')}');
+
+        final results = await Future.wait(
+          queries.map((q) => jobService.searchJobs(query: q, location: loc)).toList(),
+          eagerError: false,
+        );
+
+        // Flatten + dedupe
+        final seen = <String>{};
+        for (final list in results) {
+          for (final j in list) {
+            final key = (j.applicationUrl ?? j.title).toLowerCase();
+            if (seen.add(key)) allJobs.add(j);
+          }
+        }
+        print('💼 ${allJobs.length} Jobs in "$loc" (aggregiert)');
+
+        // Job-Matching
+        final jobMatchingService = JobMatchingService();
+        final matchedJobs = jobMatchingService.matchJobsWithAnalysis(allJobs, analysis);
+        print('🎯 ${matchedJobs.length} passende Jobs gematcht');
+      } catch (e) {
+        print('⚠️ Job-Suche übersprungen (zeige Analyse trotzdem): $e');
+      }
       
       // In Firestore speichern
       await _firestore.collection('resume_analyses').doc(userId).set(analysis.toMap());
@@ -91,35 +113,59 @@ class ResumeService {
   }
 
   String _generateJobQuery(ResumeAnalysisModel analysis) {
-    // Basierend auf Skills und Experience Level
-    final skills = analysis.skills.take(3).join(' ');
+    // Behalte eine kurze Basisquery für Einzelaufrufe (Kompatibilität)
+    final topSkills = analysis.skills.take(3).join(' ');
     final experience = analysis.experienceLevel;
-    
-    String query = skills;
-    
-    // Experience-spezifische Keywords
+
+    String query = topSkills;
+
     switch (experience) {
       case 'entry':
-        query += ' junior trainee entry level';
+        query += ' junior';
         break;
       case 'mid':
-        query += ' mid-level experienced 3-5 jahre';
+        query += ' mid level';
         break;
       case 'senior':
-        query += ' senior lead manager 5+ jahre';
+        query += ' senior';
         break;
       case 'expert':
-        query += ' expert principal architect 10+ jahre';
+        query += ' lead principal';
         break;
     }
-    
-    // Industries hinzufügen
-    if (analysis.industries.isNotEmpty) {
-      query += ' ${analysis.industries.take(2).join(' ')}';
-    }
-    
+
     print('🔍 Job-Query generiert: $query');
     return query;
+  }
+
+  List<String> _generateJobQueries(ResumeAnalysisModel a, {int limit = 6}) {
+    final skills = a.skills.take(5).toList();
+    final titles = <String>{};
+
+    for (final s in skills) {
+      final l = s.toLowerCase();
+      if (l.contains('data')) { titles.add('data analyst'); titles.add('business intelligence'); }
+      if (l.contains('sql')) { titles.add('data engineer'); }
+      if (l.contains('python')) { titles.add('python developer'); }
+      if (l.contains('system')) { titles.add('system analyst'); }
+      if (l.contains('consult')) { titles.add('consultant'); }
+      titles.add(s);
+    }
+
+    switch (a.experienceLevel) {
+      case 'entry': titles.add('junior'); break;
+      case 'mid': titles.add('mid level'); break;
+      case 'senior': titles.add('senior'); break;
+      case 'expert': titles.add('lead'); titles.add('principal'); break;
+    }
+
+    final base = <String>{};
+    for (final t in titles) {
+      if (t.trim().isEmpty) continue;
+      base.add(t.trim());
+    }
+
+    return base.take(limit).toList();
   }
 
   Future<String> _extractTextFromResume(String resumeUrl) async {
