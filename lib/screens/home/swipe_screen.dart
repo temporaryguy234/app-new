@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../../services/job_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/resume_service.dart';
+import '../../services/auth_service.dart';
 import '../../models/job_model.dart';
 import '../../config/colors.dart';
 import '../../widgets/job_card.dart';
@@ -33,27 +35,19 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
   Future<void> _loadJobs() async {
     setState(() => _isLoading = true);
-    
     try {
-      final jobs = await _jobService.searchJobs(
-        query: 'Softwareentwickler',
-        location: 'Deutschland',
-      );
-      
-      setState(() {
-        _jobs = jobs;
-        _isLoading = false;
-      });
-    } catch (e) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final user = auth.currentUser;
+      if (user == null) { setState(() => _isLoading = false); return; }
+
+      final resumeService = ResumeService();
+      final analysis = await resumeService.getResumeAnalysis(user.uid);
+      if (analysis == null) { setState(() => _isLoading = false); return; }
+
+      final jobs = await resumeService.findJobsForAnalysis(analysis);
+      setState(() { _jobs = jobs; _isLoading = false; });
+    } catch (_) {
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler beim Laden der Jobs: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
     }
   }
 
@@ -199,7 +193,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Keine Jobs gefunden',
+                        'Noch keine passenden Jobs',
                         style: TextStyle(
                           fontSize: 18,
                           color: AppColors.textSecondary,
@@ -207,7 +201,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Versuche es später erneut',
+                        'Filter prüfen oder Standort (PLZ/Stadt) anpassen',
                         style: TextStyle(
                           color: AppColors.textTertiary,
                         ),
@@ -215,7 +209,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: _loadJobs,
-                        child: const Text('Erneut versuchen'),
+                        child: const Text('Erneut suchen'),
                       ),
                     ],
                   ),

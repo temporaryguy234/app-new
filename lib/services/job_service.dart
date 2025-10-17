@@ -57,16 +57,16 @@ class JobService {
     if (experienceLevel != null) {
       switch (experienceLevel) {
         case 'entry':
-          params['q'] = '$query junior trainee entry level';
+          params['q'] = '${params['q']} junior';
           break;
         case 'mid':
-          params['q'] = '$query mid-level experienced 3-5 jahre';
+          params['q'] = '${params['q']} mid';
           break;
         case 'senior':
-          params['q'] = '$query senior lead manager 5+ jahre';
+          params['q'] = '${params['q']} senior';
           break;
         case 'expert':
-          params['q'] = '$query expert principal architect 10+ jahre';
+          params['q'] = '${params['q']} expert';
           break;
       }
     }

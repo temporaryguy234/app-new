@@ -186,6 +186,8 @@ Analysiere den folgenden Lebenslauf und gib eine detaillierte Bewertung zurück.
   "yearsOfExperience": [Zahl der Jahre],
   "industries": ["Branche1", "Branche2", "Branche3"],
   "summary": "2-3 Sätze über das Profil und die Erfahrung",
+  "location": "string",
+  "postalCode": "string | null",
   "experienceLevel": "entry/mid/senior/expert"
 }
 
@@ -248,6 +250,7 @@ Bewertungskriterien:
         industries: _asStrings(data['industries']),
         summary: data['summary']?.toString() ?? 'Keine Zusammenfassung verfügbar',
         location: _normalizeResumeLocationToEnglish(data['location']),
+        postalCode: data['postalCode']?.toString() ?? '',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -266,6 +269,7 @@ Bewertungskriterien:
         industries: ['Allgemein'],
         summary: 'Grundlegende Analyse verfügbar',
         location: 'Unbekannt',
+        postalCode: '',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

@@ -106,126 +106,51 @@ class ResumeService {
 
   // Intelligente Jobtitel-Ableitung basierend auf Skills + Erfahrung
   String _buildSmartJobQuery(ResumeAnalysisModel a) {
-    final jobTitles = <String>{};
-    
-    // Skills zu echten Jobtiteln mappen
-    for (final skill in a.skills) {
-      final s = skill.toLowerCase();
-      
-      // Data/BI Bereich
-      if (s.contains('data') || s.contains('analys') || s.contains('statistik')) {
-        jobTitles.addAll(['data analyst', 'business analyst', 'business intelligence analyst', 'data scientist']);
+    final titles = <String>{};
+
+    // Kompakte, echte Titel (DE+EN)
+    for (final s in a.skills) {
+      final t = s.toLowerCase();
+      if (t.contains('data') || t.contains('analys')) {
+        titles.addAll({'data analyst','business analyst','datenanalyst','geschäftsanalyst'});
       }
-      if (s.contains('sql') || s.contains('database') || s.contains('datenbank')) {
-        jobTitles.addAll(['data engineer', 'database developer', 'sql developer', 'data analyst']);
+      if (t.contains('sql') || t.contains('datenbank')) {
+        titles.addAll({'data engineer','datenbankentwickler','sql entwickler'});
       }
-      
-      // Development
-      if (s.contains('python')) {
-        jobTitles.addAll(['python developer', 'software engineer', 'backend developer']);
+      if (t.contains('python')) {
+        titles.addAll({'python developer','python entwickler','softwareentwickler'});
       }
-      if (s.contains('javascript') || s.contains('react') || s.contains('vue') || s.contains('angular')) {
-        jobTitles.addAll(['frontend developer', 'web developer', 'javascript developer', 'react developer']);
+      if (t.contains('javascript') || t.contains('react') || t.contains('frontend')) {
+        titles.addAll({'frontend developer','frontend entwickler','webentwickler'});
       }
-      if (s.contains('java')) {
-        jobTitles.addAll(['java developer', 'backend developer', 'software engineer']);
+      if (t.contains('java')) {
+        titles.addAll({'java developer','java entwickler','backend entwickler'});
       }
-      if (s.contains('c#') || s.contains('csharp')) {
-        jobTitles.addAll(['c# developer', '.net developer', 'software engineer']);
+      if (t.contains('system') || t.contains('admin')) {
+        titles.addAll({'system administrator','it administrator','system analyst','systemanalytiker'});
       }
-      
-      // System/IT
-      if (s.contains('system') || s.contains('admin') || s.contains('server')) {
-        jobTitles.addAll(['system administrator', 'it specialist', 'system analyst', 'it administrator']);
+      if (t.contains('buchhalt') || t.contains('accounting')) {
+        titles.addAll({'buchhalter','accountant','finanzbuchhalter'});
       }
-      if (s.contains('network') || s.contains('security') || s.contains('sicherheit')) {
-        jobTitles.addAll(['network engineer', 'security specialist', 'cybersecurity analyst']);
-      }
-      if (s.contains('cloud') || s.contains('aws') || s.contains('azure')) {
-        jobTitles.addAll(['cloud engineer', 'devops engineer', 'cloud architect']);
-      }
-      
-      // Business/Management
-      if (s.contains('consult') || s.contains('berat') || s.contains('consulting')) {
-        jobTitles.addAll(['consultant', 'business consultant', 'management consultant']);
-      }
-      if (s.contains('project') || s.contains('management') || s.contains('projekt')) {
-        jobTitles.addAll(['project manager', 'project coordinator', 'program manager']);
-      }
-      if (s.contains('marketing') || s.contains('sales') || s.contains('vertrieb')) {
-        jobTitles.addAll(['marketing specialist', 'sales manager', 'account manager']);
-      }
-      
-      // Finance/Accounting
-      if (s.contains('buchhalt') || s.contains('accounting') || s.contains('finanz')) {
-        jobTitles.addAll(['buchhalter', 'accountant', 'financial analyst', 'finanzbuchhalter']);
-      }
-      if (s.contains('controlling') || s.contains('finance') || s.contains('controlling')) {
-        jobTitles.addAll(['controller', 'financial controller', 'cost accountant']);
-      }
-      
-      // HR/Personal
-      if (s.contains('hr') || s.contains('personal') || s.contains('recruiting')) {
-        jobTitles.addAll(['hr specialist', 'recruiter', 'personal manager']);
-      }
-      
-      // Design/Creative
-      if (s.contains('design') || s.contains('ui') || s.contains('ux')) {
-        jobTitles.addAll(['ui designer', 'ux designer', 'graphic designer', 'web designer']);
-      }
-      
-      // Engineering
-      if (s.contains('engineer') || s.contains('ingenieur') || s.contains('technik')) {
-        jobTitles.addAll(['engineer', 'technical specialist', 'process engineer']);
+      if (t.contains('controlling')) {
+        titles.addAll({'controller','financial controller'});
       }
     }
-    
-    // Experience Level hinzufügen
+
+    // Erfahrung nur als 1 Token
     switch (a.experienceLevel) {
-      case 'entry':
-        jobTitles.addAll(['junior', 'trainee', 'entry level', 'graduate', 'starter']);
-        break;
-      case 'mid':
-        jobTitles.addAll(['mid level', 'experienced', 'specialist']);
-        break;
-      case 'senior':
-        jobTitles.addAll(['senior', 'lead', 'manager', 'expert']);
-        break;
-      case 'expert':
-        jobTitles.addAll(['expert', 'principal', 'architect', 'director']);
-        break;
+      case 'entry': titles.add('junior'); break;
+      case 'mid': titles.add('mid'); break;
+      case 'senior': titles.add('senior'); break;
+      case 'expert': titles.add('expert'); break;
     }
-    
-    // Jobtyp basierend auf Lebenslauf ableiten
-    final jobType = _inferJobType(a);
-    if (jobType == 'Teilzeit') {
-      jobTitles.add('teilzeit');
-    } else if (jobType == 'Werkstudent/Praktikum') {
-      jobTitles.addAll(['werkstudent', 'praktikum', 'internship', 'working student']);
-    }
-    
-    // Industries als Jobtitel hinzufügen
-    for (final industry in a.industries) {
-      final i = industry.toLowerCase();
-      if (i.contains('fintech') || i.contains('banking')) {
-        jobTitles.addAll(['fintech specialist', 'banking analyst', 'financial technology']);
-      }
-      if (i.contains('e-commerce') || i.contains('retail')) {
-        jobTitles.addAll(['e-commerce specialist', 'online marketing', 'digital commerce']);
-      }
-      if (i.contains('healthcare') || i.contains('medizin')) {
-        jobTitles.addAll(['healthcare analyst', 'medical technology', 'pharma specialist']);
-      }
-      if (i.contains('automotive') || i.contains('auto')) {
-        jobTitles.addAll(['automotive engineer', 'mobility specialist', 'car technology']);
-      }
-    }
-    
-    // Top 10 relevante Titel nehmen und mit OR verknüpfen
-    final topTitles = jobTitles.take(10).toList();
-    if (topTitles.isEmpty) return 'software developer';
-    
-    return '(' + topTitles.join(' OR ') + ')';
+
+    final top = titles.where((t) => t.trim().isNotEmpty)
+                      .map((t) => t.contains(' ') ? '"$t"' : t)
+                      .take(6)
+                      .toList();
+
+    return top.isEmpty ? '"softwareentwickler"' : '(${top.join(' OR ')})';
   }
 
   String _inferJobType(ResumeAnalysisModel a) {
@@ -246,22 +171,56 @@ class ResumeService {
   }
 
   // Jobs erst beim Button-Klick suchen
+  String _composeSerpLocation(ResumeAnalysisModel a) {
+    final parts = a.location.split(',').map((s) => s.trim()).toList();
+    final city = parts.isNotEmpty ? parts.first : '';
+    final country = parts.length >= 2 ? parts.last : 'Germany';
+
+    if (a.postalCode.isNotEmpty && city.isNotEmpty) {
+      return '${a.postalCode} $city, $country'; // z.B. 12305 Berlin, Germany
+    }
+    if (city.isNotEmpty && country.isNotEmpty) return '$city, $country';
+    return 'Germany';
+  }
+
   Future<List<JobModel>> findJobsForAnalysis(ResumeAnalysisModel a) async {
     final jobService = JobService();
-    final loc = (a.location.isNotEmpty && a.location.toLowerCase() != 'unbekannt') 
-        ? a.location 
-        : 'Germany';
+    final loc = _composeSerpLocation(a);
     final query = _buildSmartJobQuery(a);
     
     print('🔍 Smart Query: $query');
     print('📍 Location: $loc');
     print('🎯 Experience Level: ${a.experienceLevel}');
     
-    return await jobService.searchJobs(
+    var jobs = await jobService.searchJobs(
       query: query,
       location: loc,
       experienceLevel: a.experienceLevel,
     );
+    
+    // Fallback-Strategie: wenn 0 Treffer → 2-3 engere Einzel-Queries
+    if (jobs.isEmpty) {
+      final titles = _topTitlesFromQuery(query);
+      for (final t in titles.take(3)) {
+        final jq = '"$t"'; // enger suchen
+        final more = await jobService.searchJobs(query: jq, location: loc, experienceLevel: a.experienceLevel);
+        jobs.addAll(more);
+        if (jobs.isNotEmpty) break;
+      }
+    }
+    
+    // Dedupe
+    return _dedupeJobs(jobs);
+  }
+
+  Iterable<String> _topTitlesFromQuery(String q) {
+    final inside = q.replaceAll('(', '').replaceAll(')', '').replaceAll('"', '');
+    return inside.split(' OR ').map((s) => s.trim()).where((s) => s.split(' ').length <= 3);
+  }
+
+  List<JobModel> _dedupeJobs(List<JobModel> list) {
+    final seen = <String>{};
+    return list.where((j) => seen.add('${(j.applicationUrl ?? '').toLowerCase()}|${j.title.toLowerCase()}')).toList();
   }
 
   Future<String> _extractTextFromResume(String resumeUrl) async {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
 import '../../services/resume_service.dart';
-import '../jobs/job_results_screen.dart';
+import '../main/main_screen.dart';
 
 class ResumeScoringScreen extends StatelessWidget {
   final ResumeAnalysisModel analysis;
@@ -406,41 +406,27 @@ class ResumeScoringScreen extends StatelessWidget {
         Expanded(
           child: ElevatedButton(
             onPressed: () async {
-              // Loading anzeigen
+              // Dezenter Loader
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Suche passende Jobs...'),
-                    ],
-                  ),
-                ),
+                barrierColor: Colors.black26,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
               );
               
               try {
-                final resumeService = ResumeService();
-                final jobs = await resumeService.findJobsForAnalysis(analysis);
+                // Optionales Prewarm, kein await -> Navigation bleibt schnell
+                // unawaited(ResumeService().findJobsForAnalysis(analysis));
                 
                 if (context.mounted) {
-                  Navigator.of(context).pop(); // Loading schließen
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => JobResultsScreen(jobs: jobs),
-                    ),
+                  Navigator.of(context).pop(); // Loader schließen
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const MainScreen(initialTabIndex: 0)),
+                    (_) => false,
                   );
                 }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.of(context).pop(); // Loading schließen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Jobsuche fehlgeschlagen: $e')),
-                  );
-                }
+              } catch (_) {
+                if (context.mounted) Navigator.of(context).pop();
               }
             },
             style: ElevatedButton.styleFrom(

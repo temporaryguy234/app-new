@@ -13,6 +13,7 @@ class ResumeAnalysisModel {
   final List<String> industries;
   final String summary;
   final String location;
+  final String postalCode;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -29,6 +30,7 @@ class ResumeAnalysisModel {
     required this.industries,
     required this.summary,
     required this.location,
+    required this.postalCode,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -47,6 +49,7 @@ class ResumeAnalysisModel {
       industries: List<String>.from(map['industries'] ?? []),
       summary: map['summary'] as String,
       location: map['location'] as String? ?? 'Unbekannt',
+      postalCode: map['postalCode'] as String? ?? '',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -66,6 +69,7 @@ class ResumeAnalysisModel {
       'industries': industries,
       'summary': summary,
       'location': location,
+      'postalCode': postalCode,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
