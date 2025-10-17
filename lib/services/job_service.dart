@@ -6,8 +6,6 @@ import '../models/filter_model.dart';
 
 class JobService {
   static const String _baseUrl = 'https://serpapi.com/search';
-  // Simple in-memory cache to avoid duplicate calls during short sessions
-  static final Map<String, List<JobModel>> _cache = {};
 
   Future<List<JobModel>> searchJobs({
     required String query,
@@ -25,17 +23,10 @@ class JobService {
       print('💰 Min Salary: $minSalary');
       
       final params = _buildSearchParams(query, location, filters, experienceLevel, remote, minSalary);
-      final cacheKey = params.toString();
-      final cached = _cache[cacheKey];
-      if (cached != null) {
-        print('⚡ Cache hit: ${cached.length} Jobs');
-        return cached;
-      }
       final response = await _callSerpAPI(params);
       
       final jobs = _parseJobResults(response);
       print('✅ ${jobs.length} Jobs gefunden');
-      _cache[cacheKey] = jobs;
       
       return jobs;
     } catch (e) {
@@ -342,21 +333,6 @@ class JobService {
     if (raw.isEmpty) {
       return {'location': 'Germany', 'hl': 'en', 'gl': 'de'};
     }
-    // Try to detect explicit ZIP first (4 or 5 digits anywhere)
-    final zipMatch = RegExp(r'(\b\d{5}\b|\b\d{4}\b)').firstMatch(raw);
-    if (zipMatch != null) {
-      final zip = zipMatch.group(0)!;
-      // If a city is also present, keep it; else default by zip length
-      final cityPart = raw.replaceAll(zip, '').trim();
-      if (cityPart.isNotEmpty) {
-        // Example: "12305 Berlin" -> "Berlin, Germany"
-        final city = cityPart.replaceAll(',', '').trim();
-        return {'location': '${city.isEmpty ? 'Germany' : city}, ${zip.length == 4 ? 'Austria' : 'Germany'}', 'hl': 'en', 'gl': zip.length == 4 ? 'at' : 'de'};
-      } else {
-        // No city, only ZIP -> choose country by zip length
-        return {'location': zip.length == 4 ? 'Austria' : 'Germany', 'hl': 'en', 'gl': zip.length == 4 ? 'at' : 'de'};
-      }
-    }
     // "Berlin, Deutschland" -> City + Country EN
     if (raw.contains(',')) {
       final parts = raw.split(',').map((s) => s.trim()).toList();
@@ -366,13 +342,13 @@ class JobService {
       return {'location': '$city, $countryEn', 'hl': 'en', 'gl': gl};
     }
 
-    // "12305 Berlin" -> "Berlin, Germany" | "1200 Wien" -> "Wien, Austria"
+    // "12305 Berlin" -> "12305 Berlin, Germany" | "1200 Wien" -> "1200 Wien, Austria"
     final zipCity = RegExp(r'^\s*(\d{4,5})\s+(.+)$').firstMatch(raw);
     if (zipCity != null) {
       final zip = zipCity.group(1)!;
       final city = zipCity.group(2)!.trim();
-      if (zip.length == 5) return {'location': '$city, Germany', 'hl': 'en', 'gl': 'de'};
-      if (zip.length == 4) return {'location': '$city, Austria', 'hl': 'en', 'gl': 'at'}; // Heuristik
+      if (zip.length == 5) return {'location': '$zip $city, Germany', 'hl': 'en', 'gl': 'de'};
+      if (zip.length == 4) return {'location': '$zip $city, Austria', 'hl': 'en', 'gl': 'at'}; // Heuristik
     }
 
     // Nur Land

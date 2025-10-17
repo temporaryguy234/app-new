@@ -67,7 +67,7 @@ class GeminiService {
       print('📝 Prompt erstellt, starte Firebase AI Call...');
       
       final response = await _model.generateContent(
-        [Content.text(prompt, role: 'user')],
+        [Content.text(prompt)],
         generationConfig: GenerationConfig(
           temperature: 0.0,
           maxOutputTokens: 2048,
@@ -112,8 +112,7 @@ class GeminiService {
         "industries": [string],
         "summary": string,
         "experienceLevel": "entry" | "mid" | "senior" | "expert",
-        "location": "string",              // Aktueller Standort (Stadt, Land)
-        "postalCode": "string|null"        // falls vorhanden (z.B. 12305 oder 1200)
+        "location": "string"               // Aktueller Standort (Stadt, Land)
       }
 
       Bewertungskriterien:
@@ -132,7 +131,7 @@ class GeminiService {
       
       // Multimodale Anfrage: Text + PDF
       final response = await _model.generateContent(
-        [Content.multi([TextPart(prompt), InlineDataPart('application/pdf', bytes)], role: 'user')],
+        [Content.multi([TextPart(prompt), InlineDataPart('application/pdf', bytes)])],
         generationConfig: GenerationConfig(
           temperature: 0.0,
           maxOutputTokens: 2048,
@@ -249,7 +248,6 @@ Bewertungskriterien:
         industries: _asStrings(data['industries']),
         summary: data['summary']?.toString() ?? 'Keine Zusammenfassung verfügbar',
         location: _normalizeResumeLocationToEnglish(data['location']),
-        postalCode: data['postalCode']?.toString(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

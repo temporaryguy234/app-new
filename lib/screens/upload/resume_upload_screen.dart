@@ -64,31 +64,27 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
     try {
       final analysis = await _resumeService.analyzeResume(userId, resumeUrl);
       
-      setState(() {
-        _uploadStatus = 'Analyse abgeschlossen!';
-        _isAnalyzing = false;
-      });
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lebenslauf erfolgreich analysiert!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        // Direkt die Analyse anzeigen statt nur zurück zu navigieren
-        Navigator.of(context).push(
+        setState(() {
+          _uploadStatus = 'Analyse abgeschlossen!';
+          _isAnalyzing = false;
+        });
+        
+        // STATT POP() - zur Analyse navigieren
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => ResumeScoringScreen(analysis: analysis),
+            builder: (context) => ResumeScoringScreen(analysis: analysis),
           ),
         );
       }
       
     } catch (e) {
-      setState(() {
-        _uploadStatus = 'Analyse fehlgeschlagen: $e';
-        _isAnalyzing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _uploadStatus = 'Analyse fehlgeschlagen: $e';
+          _isAnalyzing = false;
+        });
+      }
     }
   }
 

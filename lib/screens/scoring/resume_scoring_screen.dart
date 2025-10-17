@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
+import '../../services/resume_service.dart';
+import '../jobs/job_results_screen.dart';
 
 class ResumeScoringScreen extends StatelessWidget {
   final ResumeAnalysisModel analysis;
@@ -403,9 +405,43 @@ class ResumeScoringScreen extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Navigate to jobs screen
+            onPressed: () async {
+              // Loading anzeigen
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Suche passende Jobs...'),
+                    ],
+                  ),
+                ),
+              );
+              
+              try {
+                final resumeService = ResumeService();
+                final jobs = await resumeService.findJobsForAnalysis(analysis);
+                
+                if (context.mounted) {
+                  Navigator.of(context).pop(); // Loading schließen
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => JobResultsScreen(jobs: jobs),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.of(context).pop(); // Loading schließen
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Jobsuche fehlgeschlagen: $e')),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -416,7 +452,7 @@ class ResumeScoringScreen extends StatelessWidget {
               ),
             ),
             child: const Text(
-              'Jobs finden',
+              'Passende Jobs finden',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
