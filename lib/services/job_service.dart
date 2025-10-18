@@ -35,60 +35,49 @@ class JobService {
     }
   }
 
+  // Paged Google Jobs via SerpAPI with backoff and dedupe
   Future<List<JobModel>> searchJobsPaged({
     required String query,
-    String? location,
-    FilterModel? filters,
+    required String location,
     String? experienceLevel,
+    JobFilters? filters,
     bool? remote,
     double? minSalary,
     int maxPages = 3,
-    Duration timeout = const Duration(seconds: 12),
   }) async {
     final all = <JobModel>[];
     final seen = <String>{};
     String? nextToken;
     int page = 0;
 
-    try {
-      do {
-        final params = _buildSearchParams(
-          query, location, filters, experienceLevel, remote, minSalary,
-        );
-        if (nextToken != null) params['next_page_token'] = nextToken;
+    do {
+      final params = _buildSearchParams(query, location, filters, experienceLevel, remote, minSalary);
+      if (nextToken != null) params['next_page_token'] = nextToken;
 
-        Map<String, dynamic> json;
-        int attempts = 0;
-        while (true) {
-          attempts++;
-          try {
-            json = await _callSerpAPI(params).timeout(timeout);
-            break;
-          } catch (e) {
-            // 429/Netz – kurzer Backoff, max 3 Versuche
-            if (attempts >= 3) rethrow;
-            await Future.delayed(Duration(milliseconds: 100 + 150 * attempts));
-          }
+      Map<String, dynamic> json;
+      int attempts = 0;
+      while (true) {
+        attempts++;
+        try {
+          json = await _callSerpAPI(params).timeout(const Duration(seconds: 12));
+          break;
+        } catch (e) {
+          if (attempts >= 3) rethrow;
+          await Future.delayed(Duration(milliseconds: 100 + 150 * attempts));
         }
+      }
 
-        final jobs = _parseJobResults(json);
-        for (final j in jobs) {
-          final k = '${(j.applicationUrl ?? '').toLowerCase()}|${j.title.toLowerCase()}|${j.company.toLowerCase()}';
-          if (seen.add(k)) all.add(j);
-        }
+      final jobs = _parseJobs(json);
+      for (final j in jobs) {
+        final k = '${(j.applicationUrl ?? '').toLowerCase()}|${j.title.toLowerCase()}|${j.company.toLowerCase()}';
+        if (seen.add(k)) all.add(j);
+      }
 
-        nextToken = json['serpapi_pagination']?['next_page_token'] as String?;
-        page++;
-        
-        print('📄 Seite $page: ${jobs.length} Jobs, Total: ${all.length}');
-      } while (nextToken != null && page < maxPages);
+      nextToken = json['serpapi_pagination']?['next_page_token'] as String?;
+      page++;
+    } while (nextToken != null && page < maxPages);
 
-      print('✅ ${all.length} Jobs total gefunden (${page} Seiten)');
-      return all;
-    } catch (e) {
-      print('❌ Fehler bei paginierter Jobsuche: $e');
-      return all; // Return what we have so far
-    }
+    return all;
   }
 
   Map<String, String> _buildSearchParams(

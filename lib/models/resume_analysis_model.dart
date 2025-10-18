@@ -35,6 +35,28 @@ class ResumeAnalysisModel {
     required this.updatedAt,
   });
 
+  ResumeAnalysisModel copyWith({
+    String? postalCode,
+  }) {
+    return ResumeAnalysisModel(
+      id: id,
+      userId: userId,
+      resumeUrl: resumeUrl,
+      score: score,
+      strengths: strengths,
+      improvements: improvements,
+      skills: skills,
+      yearsOfExperience: yearsOfExperience,
+      experienceLevel: experienceLevel,
+      industries: industries,
+      summary: summary,
+      location: location,
+      postalCode: postalCode ?? this.postalCode,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
   factory ResumeAnalysisModel.fromMap(Map<String, dynamic> map) {
     return ResumeAnalysisModel(
       id: map['id'] as String,

@@ -207,12 +207,6 @@ Bewertungskriterien:
   }
 
 
-  String _extractPostalFromLocation(dynamic loc) {
-    final s = (loc?.toString() ?? '').trim();
-    final m = RegExp(r'(^|\s)(\d{4,5})(?=\s|,|$)').firstMatch(s);
-    return m?.group(2) ?? '';
-  }
-
   ResumeAnalysisModel _parseAnalysisResponse(String response, String userId, String resumeUrl) {
     try {
       print('🔍 Raw Response: ${response.substring(0, response.length.clamp(0, 100))}...');
@@ -256,9 +250,9 @@ Bewertungskriterien:
         industries: _asStrings(data['industries']),
         summary: data['summary']?.toString() ?? 'Keine Zusammenfassung verfügbar',
         location: _normalizeResumeLocationToEnglish(data['location']),
-        postalCode: (data['postalCode']?.toString() ?? '').trim().isEmpty
-          ? _extractPostalFromLocation(data['location'])
-          : data['postalCode'].toString(),
+        postalCode: (data['postalCode']?.toString() ?? '').isEmpty
+            ? _extractPostalFromLocation(data['location'])
+            : data['postalCode'].toString(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -282,5 +276,11 @@ Bewertungskriterien:
         updatedAt: DateTime.now(),
       );
     }
+  }
+
+  String _extractPostalFromLocation(dynamic loc) {
+    final s = (loc?.toString() ?? '').trim();
+    final m = RegExp(r'(^|\s)(\d{4,5})(?=\s|,|$)').firstMatch(s);
+    return m?.group(2) ?? '';
   }
 }

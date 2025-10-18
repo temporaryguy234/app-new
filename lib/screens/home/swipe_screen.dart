@@ -216,27 +216,23 @@ class _SwipeScreenState extends State<SwipeScreen> {
                 )
               : Column(
                   children: [
-                    // Action bar (without counter)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const Spacer(),
-                          if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.undo),
-                              onPressed: _undoLastAction,
-                              tooltip: 'Rückgängig',
-                            ),
-                        ],
+                    // Optional undo button only
+                    if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          icon: const Icon(Icons.undo),
+                          onPressed: _undoLastAction,
+                          tooltip: 'Rückgängig',
+                        ),
                       ),
-                    ),
                     
                     // Swipe cards
                     Expanded(
                       child: CardSwiper(
                         controller: _swiperController,
                         cardsCount: _jobs.length,
+                        isLoop: false,
                         onSwipe: _onSwipe,
                         cardBuilder: (context, index) {
                           if (index >= _jobs.length) return null;

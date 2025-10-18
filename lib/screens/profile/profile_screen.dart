@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/resume_service.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
 import '../scoring/resume_scoring_screen.dart';
 import '../upload/resume_upload_screen.dart';
-import 'analysis_list_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -118,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      FirebaseAuth.instance.currentUser?.displayName ?? 'Dein Profil',
+                                      (Provider.of<AuthService>(context, listen: false).currentUser?.displayName) ?? 'Dein Profil',
                                       style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -126,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      FirebaseAuth.instance.currentUser?.email ?? 'Keine E-Mail',
+                                      (Provider.of<AuthService>(context, listen: false).currentUser?.email) ?? '',
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
                                       ),
@@ -143,20 +141,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // Gespeicherte Analysen Button
+                  // Saved Analyses Entry
                   Card(
                     child: ListTile(
-                      leading: const Icon(Icons.analytics_outlined),
+                      leading: const Icon(Icons.analytics_outlined, color: AppColors.primary),
                       title: const Text('Gespeicherte Analysen'),
-                      subtitle: const Text('Alle deine Lebenslauf-Analysen'),
+                      subtitle: const Text('Alle bisherigen Lebenslauf-Analysen ansehen'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AnalysisListScreen()),
-                      ),
+                      onTap: _openAnalysisList,
                     ),
                   ),
-                  
                   const SizedBox(height: 24),
                   
                   // Upload Resume Button
@@ -393,6 +387,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openAnalysisList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const _AnalysisListScreen(),
+      ),
+    );
+  }
+
   Widget _buildSettingsItem({
     required IconData icon,
     required String title,
@@ -495,5 +497,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+}
+
+class _AnalysisListScreen extends StatelessWidget {
+  const _AnalysisListScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Nicht angemeldet')));
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Gespeicherte Analysen')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('resume_analyses')
+            .where('userId', isEqualTo: user.uid)
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final docs = snapshot.data!.docs;
+          if (docs.isEmpty) return const Center(child: Text('Noch keine Analysen'));
+          return ListView.separated(
+            itemCount: docs.length,
+            separatorBuilder: (_, __) => const Divider(height: 0),
+            itemBuilder: (context, i) {
+              final m = docs[i].data() as Map<String, dynamic>;
+              final score = (m['score'] ?? 0).toString();
+              final lvl = (m['experienceLevel'] ?? '').toString();
+              final summary = (m['summary'] ?? '').toString();
+              return ListTile(
+                leading: const Icon(Icons.insert_chart_outlined),
+                title: Text('$score/100  •  $lvl'),
+                subtitle: Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  final analysis = ResumeAnalysisModel.fromMap(m);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => ResumeScoringScreen(analysis: analysis)));
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }

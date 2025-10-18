@@ -5,7 +5,7 @@ import '../config/colors.dart';
 
 class JobCard extends StatefulWidget {
   final JobModel job;
-  final VoidCallback? onApply;
+  final VoidCallback? onApply; // optional callback to save on apply
 
   const JobCard({
     super.key,
@@ -156,52 +156,32 @@ class _JobCardState extends State<JobCard> {
                 
                 // Description
                 if (job.description != null) ...[
-                  Text(
-                    job.description!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                    firstChild: Text(
+                      job.description!,
+                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: _expanded ? null : 3,
-                    overflow: _expanded ? null : TextOverflow.ellipsis,
+                    secondChild: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        job.description!,
+                        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Expandable details
-                if (_expanded) ...[
-                  if (job.postalCode != null && job.postalCode!.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Icon(Icons.pin_drop, size: 16, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text('PLZ: ${job.postalCode}', style: TextStyle(color: AppColors.textSecondary)),
-                      ],
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      child: Text(_expanded ? 'Weniger anzeigen' : 'Mehr anzeigen'),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (job.requirements != null && job.requirements!.isNotEmpty) ...[
-                    Text('Anforderungen:', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: job.requirements!.map((req) => Chip(
-                        label: Text(req, style: TextStyle(fontSize: 12)),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      )).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ],
-                
-                // Expand/Collapse button
-                if (job.description != null || (job.requirements != null && job.requirements!.isNotEmpty))
-                  TextButton(
-                    onPressed: () => setState(() => _expanded = !_expanded),
-                    child: Text(_expanded ? 'Weniger anzeigen' : 'Mehr anzeigen'),
                   ),
+                ],
                 
                 // Footer info
                 Row(
@@ -244,9 +224,8 @@ class _JobCardState extends State<JobCard> {
             margin: const EdgeInsets.all(20),
             child: ElevatedButton(
               onPressed: () async {
-                // Save job first
-                widget.onApply?.call();
-                // Then apply
+                // Save on apply
+                if (widget.onApply != null) widget.onApply!();
                 await _applyToJob(context);
               },
               child: const Text('Bewerben'),
