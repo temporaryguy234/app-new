@@ -104,53 +104,133 @@ class ResumeService {
     return query;
   }
 
-  // Intelligente Jobtitel-Ableitung basierend auf Skills + Erfahrung
+  // Intelligente Jobtitel-Ableitung basierend auf Analyse-Daten
   String _buildSmartJobQuery(ResumeAnalysisModel a) {
+    final jobTitles = _extractJobTitles(a);
+    final employmentTypes = _getEmploymentTypes(a);
+    
+    // Titel mit Anführungszeichen für exakte Suche
+    final titleQueries = jobTitles.map((t) => '"$t"').toList();
+    
+    // Anstellungsart-Begriffe
+    final typeQueries = employmentTypes.toList();
+    
+    // Kombiniere alles mit OR
+    final allQueries = [...titleQueries, ...typeQueries];
+    
+    if (allQueries.isEmpty) {
+      // Fallback: allgemeine Einstiegsjobs
+      return '"helfer" OR "aushilfe" OR "minijob" OR "praktikum"';
+    }
+    
+    return '(${allQueries.join(' OR ')})';
+  }
+
+  // Jobtitel aus Analyse-Daten extrahieren
+  List<String> _extractJobTitles(ResumeAnalysisModel analysis) {
     final titles = <String>{};
-
-    // Kompakte, echte Titel (DE+EN)
-    for (final s in a.skills) {
-      final t = s.toLowerCase();
-      if (t.contains('data') || t.contains('analys')) {
-        titles.addAll({'data analyst','business analyst','datenanalyst','geschäftsanalyst'});
-      }
-      if (t.contains('sql') || t.contains('datenbank')) {
-        titles.addAll({'data engineer','datenbankentwickler','sql entwickler'});
-      }
-      if (t.contains('python')) {
-        titles.addAll({'python developer','python entwickler','softwareentwickler'});
-      }
-      if (t.contains('javascript') || t.contains('react') || t.contains('frontend')) {
-        titles.addAll({'frontend developer','frontend entwickler','webentwickler'});
-      }
-      if (t.contains('java')) {
-        titles.addAll({'java developer','java entwickler','backend entwickler'});
-      }
-      if (t.contains('system') || t.contains('admin')) {
-        titles.addAll({'system administrator','it administrator','system analyst','systemanalytiker'});
-      }
-      if (t.contains('buchhalt') || t.contains('accounting')) {
-        titles.addAll({'buchhalter','accountant','finanzbuchhalter'});
-      }
-      if (t.contains('controlling')) {
-        titles.addAll({'controller','financial controller'});
+    final text = '${analysis.summary} ${analysis.skills.join(' ')} ${analysis.industries.join(' ')}'.toLowerCase();
+    
+    // Titel-Pattern erkennen (Deutsch + Englisch)
+    final titlePatterns = {
+      // IT/Development
+      r'\b(software|web|app|frontend|backend|full.?stack|mobile|game|embedded)\s*(developer|entwickler|engineer|programmer|programmierer)\b': ['software developer', 'software engineer', 'web developer', 'app developer'],
+      r'\b(system|business|data|it)\s*(analyst|analytiker)\b': ['system analyst', 'business analyst', 'data analyst', 'it analyst'],
+      r'\b(devops|cloud|aws|azure|kubernetes|docker)\b': ['devops engineer', 'cloud engineer', 'system administrator'],
+      r'\b(python|java|javascript|typescript|c\+\+|c#|php|ruby|go|rust|swift|kotlin)\b': ['software developer', 'programmer', 'software engineer'],
+      
+      // Healthcare/Medical
+      r'\b(pflege|krankenpflege|healthcare|medical|nurse|krankenschwester|pfleger)\b': ['pflegefachkraft', 'krankenpfleger', 'healthcare worker', 'nurse'],
+      r'\b(arzt|doctor|medizin|medical|therapie|physiotherapie)\b': ['arzt', 'doctor', 'medical assistant', 'therapist'],
+      
+      // Administration/Office
+      r'\b(verwaltung|sachbearbeiter|office|assistant|assistent|sekretär|sekretärin)\b': ['verwaltungsangestellte', 'sachbearbeiter', 'office assistant', 'administrative assistant'],
+      r'\b(buchhaltung|accounting|finance|finanz|controller|controlling)\b': ['buchhalter', 'accountant', 'financial analyst', 'controller'],
+      
+      // Sales/Marketing
+      r'\b(verkauf|sales|vertrieb|kundenberatung|customer|account\s*manager)\b': ['verkäufer', 'sales associate', 'kundenberater', 'account manager'],
+      r'\b(marketing|werbung|advertising|social\s*media|content|digital)\b': ['marketing manager', 'marketing specialist', 'content manager', 'social media manager'],
+      
+      // Technical/Trades
+      r'\b(elektriker|electrician|elektro|electrical|mechatroniker|mechatronics)\b': ['elektriker', 'electrician', 'electrical engineer', 'mechatronics technician'],
+      r'\b(bau|construction|handwerk|craftsman|mechaniker|mechanic)\b': ['bauarbeiter', 'construction worker', 'handwerker', 'mechanic'],
+      r'\b(lager|warehouse|logistics|logistik|kommissionierer|picker)\b': ['lagerhelfer', 'warehouse worker', 'lagerarbeiter', 'logistics worker'],
+      
+      // Hospitality/Service
+      r'\b(küche|kitchen|chef|koch|cook|gastronomie|restaurant|hotel)\b': ['küchenhilfe', 'restaurant worker', 'gastronomie', 'chef', 'cook'],
+      r'\b(kellner|waiter|service|bedienung|hotel|reception)\b': ['kellner', 'waiter', 'service worker', 'hotel staff'],
+      
+      // HR/Management
+      r'\b(hr|personal|recruiting|recruiter|human\s*resources)\b': ['hr manager', 'recruiter', 'personal manager', 'human resources specialist'],
+      r'\b(management|manager|führung|leadership|team\s*lead)\b': ['manager', 'team lead', 'supervisor', 'director'],
+      
+      // Education/Training
+      r'\b(lehre|teacher|lehrer|education|ausbildung|trainer|coach)\b': ['lehrer', 'teacher', 'trainer', 'coach', 'education specialist'],
+      
+      // Design/Creative
+      r'\b(design|grafik|graphic|ui|ux|web\s*design|creative)\b': ['designer', 'graphic designer', 'ui designer', 'ux designer', 'web designer'],
+    };
+    
+    // Pattern-Matching
+    for (final entry in titlePatterns.entries) {
+      final pattern = RegExp(entry.key, caseSensitive: false);
+      if (pattern.hasMatch(text)) {
+        titles.addAll(entry.value);
       }
     }
-
-    // Erfahrung nur als 1 Token
-    switch (a.experienceLevel) {
-      case 'entry': titles.add('junior'); break;
-      case 'mid': titles.add('mid'); break;
-      case 'senior': titles.add('senior'); break;
-      case 'expert': titles.add('expert'); break;
+    
+    // Synonyme hinzufügen
+    final synonyms = <String, List<String>>{
+      'software developer': ['programmer', 'software engineer', 'developer', 'programmierer'],
+      'system analyst': ['business analyst', 'data analyst', 'it analyst', 'systemanalytiker'],
+      'pflegefachkraft': ['krankenpfleger', 'healthcare worker', 'nurse', 'pflegekraft'],
+      'verkäufer': ['sales associate', 'kundenberater', 'verkaufskraft', 'sales representative'],
+      'lagerhelfer': ['warehouse worker', 'lagerarbeiter', 'logistics worker', 'kommissionierer'],
+      'küchenhilfe': ['restaurant worker', 'gastronomie', 'küchenkraft', 'kitchen helper'],
+      'elektriker': ['electrician', 'electrical engineer', 'elektrotechniker'],
+      'bauarbeiter': ['construction worker', 'handwerker', 'craftsman'],
+    };
+    
+    for (final title in titles.toList()) {
+      if (synonyms.containsKey(title)) {
+        titles.addAll(synonyms[title]!);
+      }
     }
+    
+    return titles.take(8).toList();
+  }
 
-    final top = titles.where((t) => t.trim().isNotEmpty)
-                      .map((t) => t.contains(' ') ? '"$t"' : t)
-                      .take(6)
-                      .toList();
-
-    return top.isEmpty ? '"softwareentwickler"' : '(${top.join(' OR ')})';
+  // Anstellungsart basierend auf Situation
+  List<String> _getEmploymentTypes(ResumeAnalysisModel analysis) {
+    final types = <String>{};
+    final text = '${analysis.summary} ${analysis.skills.join(' ')}'.toLowerCase();
+    
+    // Schüler/ohne Erfahrung
+    if (text.contains('schüler') || text.contains('student') || analysis.yearsOfExperience == 0) {
+      types.addAll(['ferienjob', 'minijob', 'aushilfe', 'helfer', 'praktikum']);
+    }
+    
+    // Studierende
+    if (text.contains('studium') || text.contains('university') || text.contains('hochschule')) {
+      types.addAll(['werkstudent', 'working student', 'praktikum', 'internship']);
+    }
+    
+    // Berufseinsteiger
+    if (analysis.experienceLevel == 'entry' || analysis.yearsOfExperience <= 2) {
+      types.addAll(['junior', 'assistant', 'associate', 'trainee']);
+    }
+    
+    // Erfahren
+    if (analysis.experienceLevel == 'senior' || analysis.experienceLevel == 'expert') {
+      types.addAll(['senior', 'lead', 'manager', 'specialist']);
+    }
+    
+    // Teilzeit-Historie
+    if (text.contains('teilzeit') || text.contains('part-time')) {
+      types.addAll(['teilzeit', 'part-time', 'halbtags']);
+    }
+    
+    return types.take(4).toList();
   }
 
   String _inferJobType(ResumeAnalysisModel a) {

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../models/job_model.dart';
+import '../models/application_data.dart';
+import '../models/resume_analysis_model.dart';
+import '../services/auth_service.dart';
+import '../services/resume_service.dart';
 import '../config/colors.dart';
 
 class JobCard extends StatefulWidget {
@@ -23,22 +29,26 @@ class _JobCardState extends State<JobCard> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return GestureDetector(
+      onVerticalDragUpdate: null, // vertikale Gesten ignorieren
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           // Header with company logo and bookmark
           Padding(
             padding: const EdgeInsets.all(20),
@@ -231,7 +241,9 @@ class _JobCardState extends State<JobCard> {
               child: const Text('Bewerben'),
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -283,19 +295,83 @@ class _JobCardState extends State<JobCard> {
         // Show confirmation dialog
         final shouldApply = await _showApplicationDialog(context);
         if (shouldApply == true) {
-          // Launch application URL
-          final uri = Uri.parse(job.applicationUrl!);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          // Daten aus Lebenslauf-Analyse holen
+          final authService = Provider.of<AuthService>(context, listen: false);
+          final user = authService.currentUser;
+          if (user == null) return;
+          
+          final resumeService = ResumeService();
+          final analysis = await resumeService.getResumeAnalysis(user.uid);
+          
+          if (analysis != null) {
+            final appData = ApplicationData(
+              name: analysis.extractedName ?? user.displayName ?? '',
+              email: analysis.extractedEmail ?? user.email ?? '',
+              phone: analysis.extractedPhone ?? '',
+              address: analysis.extractedAddress ?? '',
+              resumeUrl: analysis.resumeUrl,
+              coverLetter: _generateCoverLetter(analysis, job),
+            );
+            
+            // Daten an externe URL übertragen
+            await _submitApplication(appData, job.applicationUrl!);
           } else {
-            _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
+            // Fallback: Direkt zur URL
+            final uri = Uri.parse(job.applicationUrl!);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            } else {
+              _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
+            }
           }
         }
       } catch (e) {
-        _showErrorSnackBar(context, 'Fehler beim Öffnen des Links');
+        _showErrorSnackBar(context, 'Fehler beim Bewerben: $e');
       }
     } else {
       _showErrorSnackBar(context, 'Kein Bewerbungslink verfügbar');
+    }
+  }
+
+  String _generateCoverLetter(ResumeAnalysisModel analysis, JobModel job) {
+    return '''
+Sehr geehrte Damen und Herren,
+
+mit großem Interesse habe ich Ihre Stellenausschreibung für "${job.title}" gesehen. 
+Als ${analysis.experienceLevel} mit ${analysis.yearsOfExperience} Jahren Erfahrung in den Bereichen ${analysis.industries.join(', ')} 
+bringe ich folgende Qualifikationen mit:
+
+${analysis.strengths.map((s) => '• $s').join('\n')}
+
+Meine Fähigkeiten umfassen: ${analysis.skills.take(5).join(', ')}
+
+${analysis.summary}
+
+Ich freue mich auf Ihre Rückmeldung und die Möglichkeit, in einem persönlichen Gespräch 
+meine Motivation und Qualifikationen zu erläutern.
+
+Mit freundlichen Grüßen
+${analysis.extractedName ?? ''}
+''';
+  }
+
+  Future<void> _submitApplication(ApplicationData data, String url) async {
+    final uri = Uri.parse(url);
+    final formData = data.toFormData();
+    
+    // POST Request mit vorausgefüllten Daten
+    final response = await http.post(
+      uri,
+      body: formData,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    );
+    
+    if (response.statusCode == 200) {
+      // Erfolgreich beworben
+      print('Bewerbung erfolgreich übermittelt');
+    } else {
+      // Fallback: Direkt zur URL
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 

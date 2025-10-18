@@ -14,6 +14,10 @@ class ResumeAnalysisModel {
   final String summary;
   final String location;
   final String postalCode;
+  final String? extractedName;
+  final String? extractedEmail;
+  final String? extractedPhone;
+  final String? extractedAddress;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -31,12 +35,20 @@ class ResumeAnalysisModel {
     required this.summary,
     required this.location,
     required this.postalCode,
+    this.extractedName,
+    this.extractedEmail,
+    this.extractedPhone,
+    this.extractedAddress,
     required this.createdAt,
     required this.updatedAt,
   });
 
   ResumeAnalysisModel copyWith({
     String? postalCode,
+    String? extractedName,
+    String? extractedEmail,
+    String? extractedPhone,
+    String? extractedAddress,
   }) {
     return ResumeAnalysisModel(
       id: id,
@@ -52,6 +64,10 @@ class ResumeAnalysisModel {
       summary: summary,
       location: location,
       postalCode: postalCode ?? this.postalCode,
+      extractedName: extractedName ?? this.extractedName,
+      extractedEmail: extractedEmail ?? this.extractedEmail,
+      extractedPhone: extractedPhone ?? this.extractedPhone,
+      extractedAddress: extractedAddress ?? this.extractedAddress,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -72,6 +88,10 @@ class ResumeAnalysisModel {
       summary: map['summary'] as String,
       location: map['location'] as String? ?? 'Unbekannt',
       postalCode: map['postalCode'] as String? ?? '',
+      extractedName: map['extractedName'] as String?,
+      extractedEmail: map['extractedEmail'] as String?,
+      extractedPhone: map['extractedPhone'] as String?,
+      extractedAddress: map['extractedAddress'] as String?,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -92,6 +112,10 @@ class ResumeAnalysisModel {
       'summary': summary,
       'location': location,
       'postalCode': postalCode,
+      'extractedName': extractedName,
+      'extractedEmail': extractedEmail,
+      'extractedPhone': extractedPhone,
+      'extractedAddress': extractedAddress,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };

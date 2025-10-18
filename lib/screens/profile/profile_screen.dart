@@ -69,6 +69,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _editProfile() {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
+    
+    final nameController = TextEditingController(text: _analysis?.extractedName ?? user?.displayName ?? '');
+    final emailController = TextEditingController(text: _analysis?.extractedEmail ?? user?.email ?? '');
+    final phoneController = TextEditingController(text: _analysis?.extractedPhone ?? '');
+    final addressController = TextEditingController(text: _analysis?.extractedAddress ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profil bearbeiten'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'E-Mail'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Telefon'),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(labelText: 'Adresse'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Abbrechen'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // TODO: Save profile changes to Firestore
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Profil aktualisiert')),
+              );
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,10 +162,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               CircleAvatar(
                                 radius: 30,
                                 backgroundColor: AppColors.primary,
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 30,
+                                child: Text(
+                                  (_analysis?.extractedName?.isNotEmpty == true 
+                                      ? _analysis!.extractedName!.substring(0, 1).toUpperCase()
+                                      : 'DU'),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -116,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      (Provider.of<AuthService>(context, listen: false).currentUser?.displayName) ?? 'Dein Profil',
+                                      _analysis?.extractedName ?? (Provider.of<AuthService>(context, listen: false).currentUser?.displayName) ?? 'Dein Profil',
                                       style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -124,13 +187,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      (Provider.of<AuthService>(context, listen: false).currentUser?.email) ?? '',
+                                      _analysis?.extractedEmail ?? (Provider.of<AuthService>(context, listen: false).currentUser?.email) ?? '',
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ],
                                 ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: _editProfile,
                               ),
                             ],
                           ),

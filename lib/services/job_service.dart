@@ -236,6 +236,15 @@ class JobService {
         applicantCount: _extractApplicantCount(jobData),
         skills: skills,
         industries: industries,
+        // Neue Felder für mehr Job-Daten
+        requirements: _extractList(jobData['job_highlights']?['requirements']),
+        benefits: _extractList(jobData['job_highlights']?['benefits']),
+        responsibilities: _extractList(jobData['job_highlights']?['responsibilities']),
+        companySize: jobData['company_size'] ?? '',
+        workType: jobData['schedule_type'] ?? '',
+        industry: jobData['industry'] ?? '',
+        companyDescription: jobData['company_description'] ?? '',
+        postalCode: _extractPostalCode(location),
       );
     } catch (e) {
       print('Fehler beim Parsen eines Jobs: $e');
@@ -610,5 +619,17 @@ class JobService {
     if (l.contains('österreich') || l == 'at' || l.contains('austria')) return 'Austria';
     if (l.contains('schweiz') || l == 'ch' || l.contains('switzerland')) return 'Switzerland';
     return s;
+  }
+
+  List<String> _extractList(dynamic data) {
+    if (data == null) return [];
+    if (data is List) return data.map((e) => e.toString()).toList();
+    if (data is String) return [data];
+    return [];
+  }
+
+  String _extractPostalCode(String location) {
+    final match = RegExp(r'\b(\d{4,5})\b').firstMatch(location);
+    return match?.group(1) ?? '';
   }
 }

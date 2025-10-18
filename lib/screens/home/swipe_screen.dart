@@ -97,7 +97,17 @@ class _SwipeScreenState extends State<SwipeScreen> {
       setState(() {
         _savedJobs.add(job);
       });
+      
+      // Sofort zum Gespeichert-Tab wechseln
       if (mounted) {
+        // Navigation zum Gespeichert-Tab (Index 1)
+        final mainScreen = context.findAncestorStateOfType<_MainScreenState>();
+        if (mainScreen != null) {
+          mainScreen.setState(() {
+            mainScreen._currentIndex = 1; // Gespeichert-Tab
+          });
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${job.title} gespeichert'),
