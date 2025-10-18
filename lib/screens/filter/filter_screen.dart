@@ -33,40 +33,16 @@ class _FilterScreenState extends State<FilterScreen> {
   ];
   
   final List<String> _industries = [
-    'IT & Software',
-    'Marketing',
-    'Sales',
-    'Finance',
-    'HR',
-    'Design',
-    'Consulting',
-    'Healthcare',
-    'Education',
-    'Engineering',
-    'Media',
-    'Retail',
-    'Manufacturing',
-    'Transportation',
-    'Real Estate',
+    'IT & Software', 'Marketing', 'Sales', 'Finance', 'HR', 'Design', 'Consulting', 'Healthcare', 'Education', 'Engineering',
+    'Media', 'Retail', 'Manufacturing', 'Transportation', 'Real Estate',
+    'Construction', 'Hospitality', 'Logistics', 'Gastronomie', 'Pflege', 'Verwaltung', 'Öffentlicher Dienst', 'Handwerk',
   ];
 
   final List<String> _technologies = [
-    'Flutter',
-    'React',
-    'Vue.js',
-    'Angular',
-    'Node.js',
-    'Python',
-    'Java',
-    'C#',
-    'PHP',
-    'Swift',
-    'Kotlin',
-    'Dart',
-    'JavaScript',
-    'TypeScript',
-    'Go',
-    'Rust',
+    // breiter: auch nicht-IT Technologien/Tools
+    'MS Office', 'Excel', 'Salesforce', 'SAP', 'HubSpot', 'Canva', 'Figma', 'Adobe Photoshop', 'Adobe Illustrator', 'Google Ads', 'Meta Ads',
+    // und Entwickler-Stack bleibt enthalten
+    'Flutter','React','Vue.js','Angular','Node.js','Python','Java','C#','PHP','Swift','Kotlin','Dart','JavaScript','TypeScript','Go','Rust',
   ];
 
   final List<String> _companySizes = [
@@ -91,9 +67,14 @@ class _FilterScreenState extends State<FilterScreen> {
   ];
   
   final List<String> _experienceLevels = [
-    'Entry Level',
-    'Mid Level',
-    'Senior Level',
+    'Schüler/Aushilfe',
+    'Praktikum',
+    'Werkstudent',
+    'Junior (0-2J)',
+    'Mid (3-5J)',
+    'Senior (6-10J)',
+    'Expert (10+J)',
+    'Quereinstieg',
   ];
   
   final List<String> _contractTypes = [
@@ -227,13 +208,23 @@ class _FilterScreenState extends State<FilterScreen> {
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       final q = textEditingValue.text.trim().toLowerCase();
                       if (q.isEmpty) return const Iterable<String>.empty();
-                      // einfache Vorschläge inkl. Umlaute
-                      final cities = [
-                        'Berlin', 'München', 'Köln', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Stuttgart', 'Leipzig',
-                        'Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck',
-                        'Zürich', 'Genf', 'Basel', 'Bern', 'Lausanne',
-                      ];
-                      return cities.where((c) => c.toLowerCase().startsWith(q)).take(8);
+                      // Vorschläge inkl. Umlaute und Kürzeln (BER → Berlin)
+                      final cityMap = {
+                        'ber': 'Berlin', 'berlin': 'Berlin',
+                        'muc': 'München', 'muenchen': 'München', 'münchen': 'München',
+                        'cgn': 'Köln', 'koeln': 'Köln', 'köln': 'Köln',
+                        'dus': 'Düsseldorf', 'düsseldorf': 'Düsseldorf',
+                        'fra': 'Frankfurt', 'frankfurt': 'Frankfurt',
+                        'ham': 'Hamburg', 'hamburg': 'Hamburg',
+                        'vie': 'Wien', 'wien': 'Wien',
+                        'zrh': 'Zürich', 'zuerich': 'Zürich', 'zürich': 'Zürich',
+                        'basel': 'Basel', 'bern': 'Bern', 'graz': 'Graz', 'linz': 'Linz', 'salzburg': 'Salzburg', 'innsbruck': 'Innsbruck',
+                      };
+                      return cityMap.entries
+                          .where((e) => e.key.startsWith(q))
+                          .map((e) => e.value)
+                          .toSet()
+                          .take(8);
                     },
                     onSelected: (String selection) {
                       setState(() {

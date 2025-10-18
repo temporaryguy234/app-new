@@ -163,10 +163,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 radius: 30,
                                 backgroundColor: AppColors.primary,
                                 child: Text(
-                                  (_analysis?.extractedName?.isNotEmpty == true 
+                                  (_analysis?.extractedName?.isNotEmpty == true
                                       ? _analysis!.extractedName!.substring(0, 1).toUpperCase()
-                                      : 'DU'),
-                                  style: TextStyle(
+                                      : (Provider.of<AuthService>(context, listen: false).currentUser?.displayName?.substring(0,1).toUpperCase() ?? 'D')),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,

@@ -243,6 +243,14 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         controller: _swiperController,
                         cardsCount: _jobs.length,
                         isLoop: false,
+                        // Verhindere vertikale Swipes (nur links/rechts zulassen)
+                        // Einige Versionen unterstützen allowedDirections; falls nicht vorhanden, wird diese Zeile ignoriert.
+                        allowedDirections: const [
+                          CardSwiperDirection.left,
+                          CardSwiperDirection.right,
+                        ],
+                        // Blende den eingebauten Zähler ("1 von N") aus, wenn die Version dies unterstützt
+                        isNumber: false,
                         onSwipe: _onSwipe,
                         cardBuilder: (context, index) {
                           if (index >= _jobs.length) return null;

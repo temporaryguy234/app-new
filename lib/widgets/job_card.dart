@@ -29,9 +29,12 @@ class _JobCardState extends State<JobCard> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
+    final screenHeight = MediaQuery.of(context).size.height;
     return GestureDetector(
       onVerticalDragUpdate: null, // vertikale Gesten ignorieren
       child: Container(
+        // Größere Karte, damit mehr Text sichtbar ist
+        height: screenHeight * 0.72,
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
@@ -154,6 +157,28 @@ class _JobCardState extends State<JobCard> {
                   const SizedBox(height: 8),
                 ],
                 
+                // Postal code (falls vorhanden im Location-String extrahiert)
+                if (job.location.isNotEmpty && RegExp(r'\b(\d{4,5})\b').hasMatch(job.location)) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.pin_outlined,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        RegExp(r'\b(\d{4,5})\b').firstMatch(job.location)!.group(1)!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
                 // Tags
                 if (job.tags.isNotEmpty) ...[
                   Wrap(
@@ -164,6 +189,20 @@ class _JobCardState extends State<JobCard> {
                   const SizedBox(height: 12),
                 ],
                 
+                // Requirements / Responsibilities (falls verfügbar)
+                if ((job as dynamic).requirements != null && (job as dynamic).requirements.isNotEmpty) ...[
+                  const Text('Anforderungen', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  ...((job as dynamic).requirements as List<String>).take(6).map((r) => Text('• $r')),
+                  const SizedBox(height: 12),
+                ],
+                if ((job as dynamic).responsibilities != null && (job as dynamic).responsibilities.isNotEmpty) ...[
+                  const Text('Aufgaben', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  ...((job as dynamic).responsibilities as List<String>).take(6).map((r) => Text('• $r')),
+                  const SizedBox(height: 12),
+                ],
+
                 // Description
                 if (job.description != null) ...[
                   AnimatedCrossFade(
