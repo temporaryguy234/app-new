@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/resume_service.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
 import '../scoring/resume_scoring_screen.dart';
 import '../upload/resume_upload_screen.dart';
+import 'analysis_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -114,16 +117,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Max Mustermann', // TODO: Get from user data
-                                      style: TextStyle(
+                                    Text(
+                                      FirebaseAuth.instance.currentUser?.displayName ?? 'Dein Profil',
+                                      style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'max@example.com', // TODO: Get from user data
+                                      FirebaseAuth.instance.currentUser?.email ?? 'Keine E-Mail',
                                       style: TextStyle(
                                         color: AppColors.textSecondary,
                                       ),
@@ -140,11 +143,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // Resume Analysis Section
-                  if (_analysis != null) ...[
-                    _buildAnalysisCard(),
-                    const SizedBox(height: 24),
-                  ],
+                  // Gespeicherte Analysen Button
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.analytics_outlined),
+                      title: const Text('Gespeicherte Analysen'),
+                      subtitle: const Text('Alle deine Lebenslauf-Analysen'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AnalysisListScreen()),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
                   
                   // Upload Resume Button
                   SizedBox(

@@ -5,6 +5,7 @@ import '../saved/saved_jobs_screen.dart';
 import '../applications/applications_screen.dart';
 import '../filter/filter_screen.dart';
 import '../profile/profile_screen.dart';
+import '../specials/specials_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -29,6 +30,7 @@ class _MainScreenState extends State<MainScreen> {
     const ApplicationsScreen(),
     const FilterScreen(),
     const ProfileScreen(),
+    const SpecialsScreen(),
   ];
 
   @override
@@ -71,6 +73,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star_border),
+            activeIcon: Icon(Icons.star),
+            label: 'Specials',
           ),
         ],
       ),

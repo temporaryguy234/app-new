@@ -32,6 +32,194 @@ class _FilterScreenState extends State<FilterScreen> {
     'Werkstudent',
   ];
   
+  // Erweiterte Stadt-Map mit Umlauten
+  final Map<String, String> _cityMap = {
+    // Deutschland - Großstädte mit Umlauten
+    'berlin': 'Berlin, Germany',
+    'hamburg': 'Hamburg, Germany',
+    'münchen': 'Munich, Germany',
+    'munich': 'Munich, Germany',
+    'köln': 'Cologne, Germany',
+    'cologne': 'Cologne, Germany',
+    'frankfurt': 'Frankfurt, Germany',
+    'stuttgart': 'Stuttgart, Germany',
+    'düsseldorf': 'Düsseldorf, Germany',
+    'dresden': 'Dresden, Germany',
+    'leipzig': 'Leipzig, Germany',
+    'hannover': 'Hannover, Germany',
+    'nürnberg': 'Nuremberg, Germany',
+    'nuremberg': 'Nuremberg, Germany',
+    'bremen': 'Bremen, Germany',
+    'essen': 'Essen, Germany',
+    'dortmund': 'Dortmund, Germany',
+    'duisburg': 'Duisburg, Germany',
+    'bochum': 'Bochum, Germany',
+    'wuppertal': 'Wuppertal, Germany',
+    'bielefeld': 'Bielefeld, Germany',
+    'bonn': 'Bonn, Germany',
+    'mannheim': 'Mannheim, Germany',
+    'karlsruhe': 'Karlsruhe, Germany',
+    'augsburg': 'Augsburg, Germany',
+    'wiesbaden': 'Wiesbaden, Germany',
+    'mönchengladbach': 'Mönchengladbach, Germany',
+    'gelsenkirchen': 'Gelsenkirchen, Germany',
+    'braunschweig': 'Braunschweig, Germany',
+    'chemnitz': 'Chemnitz, Germany',
+    'kiel': 'Kiel, Germany',
+    'aachen': 'Aachen, Germany',
+    'halle': 'Halle, Germany',
+    'magdeburg': 'Magdeburg, Germany',
+    'freiburg': 'Freiburg, Germany',
+    'krefeld': 'Krefeld, Germany',
+    'lübeck': 'Lübeck, Germany',
+    'oberhausen': 'Oberhausen, Germany',
+    'erfurt': 'Erfurt, Germany',
+    'mainz': 'Mainz, Germany',
+    'rostock': 'Rostock, Germany',
+    'kassel': 'Kassel, Germany',
+    'hagen': 'Hagen, Germany',
+    'hamm': 'Hamm, Germany',
+    'saarbrücken': 'Saarbrücken, Germany',
+    'mülheim': 'Mülheim, Germany',
+    'potsdam': 'Potsdam, Germany',
+    'ludwigshafen': 'Ludwigshafen, Germany',
+    'oldenburg': 'Oldenburg, Germany',
+    'leverkusen': 'Leverkusen, Germany',
+    'osnabrück': 'Osnabrück, Germany',
+    'solingen': 'Solingen, Germany',
+    'heidelberg': 'Heidelberg, Germany',
+    'herne': 'Herne, Germany',
+    'neuss': 'Neuss, Germany',
+    'darmstadt': 'Darmstadt, Germany',
+    'paderborn': 'Paderborn, Germany',
+    'regensburg': 'Regensburg, Germany',
+    'ingolstadt': 'Ingolstadt, Germany',
+    'würzburg': 'Würzburg, Germany',
+    'fürth': 'Fürth, Germany',
+    'wolfsburg': 'Wolfsburg, Germany',
+    'offenbach': 'Offenbach, Germany',
+    'ulm': 'Ulm, Germany',
+    'heilbronn': 'Heilbronn, Germany',
+    'pforzheim': 'Pforzheim, Germany',
+    'göttingen': 'Göttingen, Germany',
+    'bottrop': 'Bottrop, Germany',
+    'trier': 'Trier, Germany',
+    'recklinghausen': 'Recklinghausen, Germany',
+    'reutlingen': 'Reutlingen, Germany',
+    'bremerhaven': 'Bremerhaven, Germany',
+    'koblenz': 'Koblenz, Germany',
+    'bergisch gladbach': 'Bergisch Gladbach, Germany',
+    'jena': 'Jena, Germany',
+    'remscheid': 'Remscheid, Germany',
+    'erlangen': 'Erlangen, Germany',
+    'moers': 'Moers, Germany',
+    'siegen': 'Siegen, Germany',
+    'hildesheim': 'Hildesheim, Germany',
+    'salzgitter': 'Salzgitter, Germany',
+    
+    // Österreich - Städte mit Umlauten
+    'wien': 'Vienna, Austria',
+    'vienna': 'Vienna, Austria',
+    'graz': 'Graz, Austria',
+    'linz': 'Linz, Austria',
+    'salzburg': 'Salzburg, Austria',
+    'innsbruck': 'Innsbruck, Austria',
+    'klagenfurt': 'Klagenfurt, Austria',
+    'villach': 'Villach, Austria',
+    'wels': 'Wels, Austria',
+    'sankt pölten': 'Sankt Pölten, Austria',
+    'dornbirn': 'Dornbirn, Austria',
+    'steyr': 'Steyr, Austria',
+    'wiener neustadt': 'Wiener Neustadt, Austria',
+    'feldkirch': 'Feldkirch, Austria',
+    'bregenz': 'Bregenz, Austria',
+    'leonding': 'Leonding, Austria',
+    'klosterneuburg': 'Klosterneuburg, Austria',
+    'baden': 'Baden, Austria',
+    'wolfsberg': 'Wolfsberg, Austria',
+    'leoben': 'Leoben, Austria',
+    'krems': 'Krems, Austria',
+    'traun': 'Traun, Austria',
+    'amstetten': 'Amstetten, Austria',
+    'kapfenberg': 'Kapfenberg, Austria',
+    'hallein': 'Hallein, Austria',
+    'kufstein': 'Kufstein, Austria',
+    'traiskirchen': 'Traiskirchen, Austria',
+    'schwechat': 'Schwechat, Austria',
+    'braunau am inn': 'Braunau am Inn, Austria',
+    'stockerau': 'Stockerau, Austria',
+    'saalfelden': 'Saalfelden, Austria',
+    'ansfelden': 'Ansfelden, Austria',
+    'hollabrunn': 'Hollabrunn, Austria',
+    'spittal an der drau': 'Spittal an der Drau, Austria',
+    'tulln': 'Tulln, Austria',
+    'telfs': 'Telfs, Austria',
+    'ternitz': 'Ternitz, Austria',
+    'perchtoldsdorf': 'Perchtoldsdorf, Austria',
+    'zell am see': 'Zell am See, Austria',
+    'voitsberg': 'Voitsberg, Austria',
+    'st. veit an der glan': 'St. Veit an der Glan, Austria',
+    'korneuburg': 'Korneuburg, Austria',
+    'neunkirchen': 'Neunkirchen, Austria',
+    'hard': 'Hard, Austria',
+    'wattens': 'Wattens, Austria',
+    'lienz': 'Lienz, Austria',
+    'knittelfeld': 'Knittelfeld, Austria',
+    'schwaz': 'Schwaz, Austria',
+    'eisenstadt': 'Eisenstadt, Austria',
+    'gmunden': 'Gmunden, Austria',
+    'bischofshofen': 'Bischofshofen, Austria',
+    'wörgl': 'Wörgl, Austria',
+    'götzis': 'Götzis, Austria',
+    'sankt johann im pongau': 'Sankt Johann im Pongau, Austria',
+    'kitzbühel': 'Kitzbühel, Austria',
+    'imst': 'Imst, Austria',
+    'lauterach': 'Lauterach, Austria',
+    'rum': 'Rum, Austria',
+    'hohenems': 'Hohenems, Austria',
+    'frastanz': 'Frastanz, Austria',
+    'rankweil': 'Rankweil, Austria',
+    
+    // Schweiz - Städte mit Umlauten
+    'zürich': 'Zurich, Switzerland',
+    'zurich': 'Zurich, Switzerland',
+    'genf': 'Geneva, Switzerland',
+    'geneva': 'Geneva, Switzerland',
+    'basel': 'Basel, Switzerland',
+    'bern': 'Bern, Switzerland',
+    'lausanne': 'Lausanne, Switzerland',
+    'winterthur': 'Winterthur, Switzerland',
+    'luzern': 'Lucerne, Switzerland',
+    'lucerne': 'Lucerne, Switzerland',
+    'st. gallen': 'St. Gallen, Switzerland',
+    'lugano': 'Lugano, Switzerland',
+    'biel': 'Biel, Switzerland',
+    'thun': 'Thun, Switzerland',
+    'köniz': 'Köniz, Switzerland',
+    'la chaux-de-fonds': 'La Chaux-de-Fonds, Switzerland',
+    'fribourg': 'Fribourg, Switzerland',
+    'schaffhausen': 'Schaffhausen, Switzerland',
+    'chur': 'Chur, Switzerland',
+    'vernier': 'Vernier, Switzerland',
+    'neuchâtel': 'Neuchâtel, Switzerland',
+    'uster': 'Uster, Switzerland',
+    'sion': 'Sion, Switzerland',
+    'lancy': 'Lancy, Switzerland',
+    'pully': 'Pully, Switzerland',
+    'kriens': 'Kriens, Switzerland',
+    'dübendorf': 'Dübendorf, Switzerland',
+    'dietikon': 'Dietikon, Switzerland',
+    'montreux': 'Montreux, Switzerland',
+    'rapperswil-jona': 'Rapperswil-Jona, Switzerland',
+    'frauenfeld': 'Frauenfeld, Switzerland',
+    'wettingen': 'Wettingen, Switzerland',
+    'riex': 'Riex, Switzerland',
+    'carouge': 'Carouge, Switzerland',
+    'reinach': 'Reinach, Switzerland',
+    'meyrin': 'Meyrin, Switzerland',
+    'horgen': 'Horgen, Switzerland',
+  };
+  
   final List<String> _industries = [
     'IT & Software',
     'Marketing',
@@ -223,15 +411,58 @@ class _FilterScreenState extends State<FilterScreen> {
               icon: Icons.location_on_outlined,
               child: Column(
                 children: [
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Stadt oder Region',
-                      hintText: 'z.B. München, Berlin, Remote',
-                    ),
-                    onChanged: (value) {
+                  RawAutocomplete<String>(
+                    optionsBuilder: (textEditingValue) {
+                      final query = textEditingValue.text.toLowerCase();
+                      if (query.isEmpty) return const Iterable<String>.empty();
+                      return _cityMap.keys.where((city) => city.startsWith(query)).take(8);
+                    },
+                    onSelected: (selection) {
+                      _locationController.text = _cityMap[selection] ?? selection;
                       setState(() {
-                        _filters = _filters.copyWith(location: value.isEmpty ? null : value);
+                        _filters = _filters.copyWith(location: _cityMap[selection] ?? selection);
                       });
+                    },
+                    fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Stadt oder Region',
+                          hintText: 'z.B. München, Berlin, Remote',
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _filters = _filters.copyWith(location: value.isEmpty ? null : value);
+                          });
+                        },
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final option = options.elementAt(index);
+                                return InkWell(
+                                  onTap: () => onSelected(option),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(option),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 16),
@@ -562,6 +793,8 @@ class _FilterScreenState extends State<FilterScreen> {
             backgroundColor: AppColors.success,
           ),
         );
+        // Navigate back to trigger job reload
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {

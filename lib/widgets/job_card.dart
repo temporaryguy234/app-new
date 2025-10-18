@@ -3,16 +3,26 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/job_model.dart';
 import '../config/colors.dart';
 
-class JobCard extends StatelessWidget {
+class JobCard extends StatefulWidget {
   final JobModel job;
+  final VoidCallback? onApply;
 
   const JobCard({
     super.key,
     required this.job,
+    this.onApply,
   });
 
   @override
+  State<JobCard> createState() => _JobCardState();
+}
+
+class _JobCardState extends State<JobCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final job = widget.job;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -153,11 +163,45 @@ class JobCard extends StatelessWidget {
                       color: AppColors.textSecondary,
                       height: 1.4,
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: _expanded ? null : 3,
+                    overflow: _expanded ? null : TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
                 ],
+                
+                // Expandable details
+                if (_expanded) ...[
+                  if (job.postalCode != null && job.postalCode!.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.pin_drop, size: 16, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Text('PLZ: ${job.postalCode}', style: TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (job.requirements != null && job.requirements!.isNotEmpty) ...[
+                    Text('Anforderungen:', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: job.requirements!.map((req) => Chip(
+                        label: Text(req, style: TextStyle(fontSize: 12)),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+                
+                // Expand/Collapse button
+                if (job.description != null || (job.requirements != null && job.requirements!.isNotEmpty))
+                  TextButton(
+                    onPressed: () => setState(() => _expanded = !_expanded),
+                    child: Text(_expanded ? 'Weniger anzeigen' : 'Mehr anzeigen'),
+                  ),
                 
                 // Footer info
                 Row(
@@ -199,7 +243,12 @@ class JobCard extends StatelessWidget {
             width: double.infinity,
             margin: const EdgeInsets.all(20),
             child: ElevatedButton(
-              onPressed: () => _applyToJob(context),
+              onPressed: () async {
+                // Save job first
+                widget.onApply?.call();
+                // Then apply
+                await _applyToJob(context);
+              },
               child: const Text('Bewerben'),
             ),
           ),

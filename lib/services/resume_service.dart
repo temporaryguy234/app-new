@@ -189,13 +189,14 @@ class ResumeService {
     final query = _buildSmartJobQuery(a);
     
     print('🔍 Smart Query: $query');
-    print('📍 Location: $loc');
+    print('📍 Composed Location: $loc | raw=${a.location} | pc=${a.postalCode}');
     print('🎯 Experience Level: ${a.experienceLevel}');
     
-    var jobs = await jobService.searchJobs(
+    var jobs = await jobService.searchJobsPaged(
       query: query,
       location: loc,
       experienceLevel: a.experienceLevel,
+      maxPages: 3,
     );
     
     // Fallback-Strategie: wenn 0 Treffer → 2-3 engere Einzel-Queries
@@ -203,7 +204,7 @@ class ResumeService {
       final titles = _topTitlesFromQuery(query);
       for (final t in titles.take(3)) {
         final jq = '"$t"'; // enger suchen
-        final more = await jobService.searchJobs(query: jq, location: loc, experienceLevel: a.experienceLevel);
+        final more = await jobService.searchJobsPaged(query: jq, location: loc, experienceLevel: a.experienceLevel, maxPages: 1);
         jobs.addAll(more);
         if (jobs.isNotEmpty) break;
       }

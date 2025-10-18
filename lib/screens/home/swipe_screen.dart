@@ -216,18 +216,11 @@ class _SwipeScreenState extends State<SwipeScreen> {
                 )
               : Column(
                   children: [
-                    // Progress indicator
+                    // Action bar (without counter)
                     Container(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          Text(
-                            '${_currentIndex + 1} von ${_jobs.length}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
                           const Spacer(),
                           if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)
                             IconButton(
@@ -247,7 +240,10 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         onSwipe: _onSwipe,
                         cardBuilder: (context, index) {
                           if (index >= _jobs.length) return null;
-                          return JobCard(job: _jobs[index]);
+                          return JobCard(
+                            job: _jobs[index],
+                            onApply: () => _saveJob(_jobs[index]),
+                          );
                         },
                       ),
                     ),
