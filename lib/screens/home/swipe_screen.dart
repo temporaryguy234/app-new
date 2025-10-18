@@ -23,7 +23,6 @@ class _SwipeScreenState extends State<SwipeScreen> {
   
   List<JobModel> _jobs = [];
   bool _isLoading = false;
-  int _currentIndex = 0;
   List<JobModel> _rejectedJobs = [];
   List<JobModel> _savedJobs = [];
 
@@ -59,10 +58,6 @@ class _SwipeScreenState extends State<SwipeScreen> {
         _saveJob(_jobs[previousIndex]);
       }
     }
-    
-    setState(() {
-      _currentIndex = currentIndex ?? 0;
-    });
   }
 
   void _rejectJob(JobModel job) async {
@@ -129,7 +124,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   }
 
   void _undoLastAction() async {
-    if (_currentIndex > 0 && (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)) {
+    if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty) {
       JobModel? lastJob;
       String? lastAction;
       
@@ -243,14 +238,6 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         controller: _swiperController,
                         cardsCount: _jobs.length,
                         isLoop: false,
-                        // Verhindere vertikale Swipes (nur links/rechts zulassen)
-                        // Einige Versionen unterstützen allowedDirections; falls nicht vorhanden, wird diese Zeile ignoriert.
-                        allowedDirections: const [
-                          CardSwiperDirection.left,
-                          CardSwiperDirection.right,
-                        ],
-                        // Blende den eingebauten Zähler ("1 von N") aus, wenn die Version dies unterstützt
-                        isNumber: false,
                         onSwipe: _onSwipe,
                         cardBuilder: (context, index) {
                           if (index >= _jobs.length) return null;

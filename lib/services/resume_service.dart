@@ -131,6 +131,8 @@ class ResumeService {
     final titles = <String>{};
     final text = '${analysis.summary} ${analysis.skills.join(' ')} ${analysis.industries.join(' ')}'.toLowerCase();
     
+    print('🔍 Analysiere Text: $text');
+    
     // Titel-Pattern erkennen (Deutsch + Englisch)
     final titlePatterns = {
       // IT/Development
@@ -197,7 +199,9 @@ class ResumeService {
       }
     }
     
-    return titles.take(8).toList();
+    final result = titles.take(8).toList();
+    print('🎯 Gefundene Jobtitel: $result');
+    return result;
   }
 
   // Anstellungsart basierend auf Situation
@@ -230,7 +234,9 @@ class ResumeService {
       types.addAll(['teilzeit', 'part-time', 'halbtags']);
     }
     
-    return types.take(4).toList();
+    final result = types.take(4).toList();
+    print('💼 Anstellungsarten: $result');
+    return result;
   }
 
   String _inferJobType(ResumeAnalysisModel a) {

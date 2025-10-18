@@ -6,6 +6,7 @@ import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
 import '../scoring/resume_scoring_screen.dart';
 import '../upload/resume_upload_screen.dart';
+import 'analysis_list_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -127,6 +128,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openAnalysisList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const AnalysisListScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,10 +172,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 radius: 30,
                                 backgroundColor: AppColors.primary,
                                 child: Text(
-                                  (_analysis?.extractedName?.isNotEmpty == true
+                                  (_analysis?.extractedName?.isNotEmpty == true 
                                       ? _analysis!.extractedName!.substring(0, 1).toUpperCase()
-                                      : (Provider.of<AuthService>(context, listen: false).currentUser?.displayName?.substring(0,1).toUpperCase() ?? 'D')),
-                                  style: const TextStyle(
+                                      : 'DU'),
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,

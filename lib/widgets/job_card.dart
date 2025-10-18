@@ -29,12 +29,10 @@ class _JobCardState extends State<JobCard> {
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    final screenHeight = MediaQuery.of(context).size.height;
     return GestureDetector(
       onVerticalDragUpdate: null, // vertikale Gesten ignorieren
       child: Container(
-        // Größere Karte, damit mehr Text sichtbar ist
-        height: screenHeight * 0.72,
+        height: MediaQuery.of(context).size.height * 0.75, // VIEL GRÖSSER!
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
@@ -157,28 +155,6 @@ class _JobCardState extends State<JobCard> {
                   const SizedBox(height: 8),
                 ],
                 
-                // Postal code (falls vorhanden im Location-String extrahiert)
-                if (job.location.isNotEmpty && RegExp(r'\b(\d{4,5})\b').hasMatch(job.location)) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.pin_outlined,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        RegExp(r'\b(\d{4,5})\b').firstMatch(job.location)!.group(1)!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-
                 // Tags
                 if (job.tags.isNotEmpty) ...[
                   Wrap(
@@ -189,20 +165,6 @@ class _JobCardState extends State<JobCard> {
                   const SizedBox(height: 12),
                 ],
                 
-                // Requirements / Responsibilities (falls verfügbar)
-                if ((job as dynamic).requirements != null && (job as dynamic).requirements.isNotEmpty) ...[
-                  const Text('Anforderungen', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  ...((job as dynamic).requirements as List<String>).take(6).map((r) => Text('• $r')),
-                  const SizedBox(height: 12),
-                ],
-                if ((job as dynamic).responsibilities != null && (job as dynamic).responsibilities.isNotEmpty) ...[
-                  const Text('Aufgaben', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  ...((job as dynamic).responsibilities as List<String>).take(6).map((r) => Text('• $r')),
-                  const SizedBox(height: 12),
-                ],
-
                 // Description
                 if (job.description != null) ...[
                   AnimatedCrossFade(
@@ -261,6 +223,108 @@ class _JobCardState extends State<JobCard> {
                     ],
                   ],
                 ),
+              ],
+            ),
+          ),
+          
+          // Job Details Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                
+                // Gehalt
+                if (job.salary != null && job.salary!.isNotEmpty) ...[
+                  _buildDetailRow(Icons.attach_money, 'Gehalt', job.salary!),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Standort mit PLZ
+                if (job.location.isNotEmpty) ...[
+                  _buildDetailRow(Icons.location_on, 'Standort', job.location),
+                  const SizedBox(height: 12),
+                ],
+                
+                if (job.postalCode != null && job.postalCode!.isNotEmpty) ...[
+                  _buildDetailRow(Icons.local_post_office, 'PLZ', job.postalCode!),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Firmengröße
+                if (job.companySize != null && job.companySize!.isNotEmpty) ...[
+                  _buildDetailRow(Icons.business, 'Firmengröße', job.companySize!),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Arbeitszeit
+                if (job.workType != null && job.workType!.isNotEmpty) ...[
+                  _buildDetailRow(Icons.schedule, 'Arbeitszeit', job.workType!),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Branche
+                if (job.industry != null && job.industry!.isNotEmpty) ...[
+                  _buildDetailRow(Icons.category, 'Branche', job.industry!),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Anforderungen
+                if (job.requirements != null && job.requirements!.isNotEmpty) ...[
+                  const Text(
+                    'Anforderungen:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  ...job.requirements!.map((req) => Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 4),
+                    child: Text('• $req', style: const TextStyle(fontSize: 13)),
+                  )),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Benefits
+                if (job.benefits != null && job.benefits!.isNotEmpty) ...[
+                  const Text(
+                    'Benefits:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  ...job.benefits!.map((benefit) => Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 4),
+                    child: Text('• $benefit', style: const TextStyle(fontSize: 13)),
+                  )),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Verantwortlichkeiten
+                if (job.responsibilities != null && job.responsibilities!.isNotEmpty) ...[
+                  const Text(
+                    'Aufgaben:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  ...job.responsibilities!.map((resp) => Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 4),
+                    child: Text('• $resp', style: const TextStyle(fontSize: 13)),
+                  )),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Beschreibung
+                if (job.description != null && job.description!.isNotEmpty) ...[
+                  const Text(
+                    'Beschreibung:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    job.description!,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ],
             ),
           ),
@@ -456,6 +520,22 @@ ${analysis.extractedName ?? ''}
         content: Text(message),
         backgroundColor: AppColors.error,
       ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '$label: $value',
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 }
