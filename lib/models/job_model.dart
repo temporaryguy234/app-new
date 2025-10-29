@@ -6,6 +6,8 @@ class JobModel {
   final String location;
   final String? salary;
   final String? description;
+  final String? sourceId; // SerpAPI job_id (compat)
+  final String? sourceUrl; // URL for verification
   final List<String> tags;
   final String? remotePercentage;
   final String jobType; // Vollzeit, Teilzeit, Praktikum, etc.
@@ -16,6 +18,14 @@ class JobModel {
   final double? distance; // in km
   final List<String> skills;
   final List<String> industries;
+  // Zusätzliche, detailliertere Felder
+  final List<String> requirements;
+  final List<String> responsibilities;
+  final List<String> benefits;
+  final String companySize;
+  final String workType; // schedule_type o.ä.
+  final String industry; // primäre Branche
+  final String companyDescription;
 
   JobModel({
     required this.id,
@@ -25,6 +35,8 @@ class JobModel {
     required this.location,
     this.salary,
     this.description,
+    this.sourceId,
+    this.sourceUrl,
     this.tags = const [],
     this.remotePercentage,
     required this.jobType,
@@ -35,6 +47,13 @@ class JobModel {
     this.distance,
     this.skills = const [],
     this.industries = const [],
+    this.requirements = const [],
+    this.responsibilities = const [],
+    this.benefits = const [],
+    this.companySize = '',
+    this.workType = '',
+    this.industry = '',
+    this.companyDescription = '',
   });
 
   factory JobModel.fromMap(Map<String, dynamic> map) {
@@ -46,6 +65,8 @@ class JobModel {
       location: map['location'] ?? '',
       salary: map['salary'],
       description: map['description'],
+      sourceId: map['sourceId'],
+      sourceUrl: map['sourceUrl'],
       tags: List<String>.from(map['tags'] ?? []),
       remotePercentage: map['remotePercentage'],
       jobType: map['jobType'] ?? '',
@@ -56,6 +77,13 @@ class JobModel {
       distance: map['distance']?.toDouble(),
       skills: List<String>.from(map['skills'] ?? []),
       industries: List<String>.from(map['industries'] ?? []),
+      requirements: List<String>.from(map['requirements'] ?? []),
+      responsibilities: List<String>.from(map['responsibilities'] ?? []),
+      benefits: List<String>.from(map['benefits'] ?? []),
+      companySize: map['companySize'] ?? '',
+      workType: map['workType'] ?? '',
+      industry: map['industry'] ?? '',
+      companyDescription: map['companyDescription'] ?? '',
     );
   }
 
@@ -68,6 +96,8 @@ class JobModel {
       'location': location,
       'salary': salary,
       'description': description,
+      'sourceId': sourceId,
+      'sourceUrl': sourceUrl,
       'tags': tags,
       'remotePercentage': remotePercentage,
       'jobType': jobType,
@@ -78,6 +108,13 @@ class JobModel {
       'distance': distance,
       'skills': skills,
       'industries': industries,
+      'requirements': requirements,
+      'responsibilities': responsibilities,
+      'benefits': benefits,
+      'companySize': companySize,
+      'workType': workType,
+      'industry': industry,
+      'companyDescription': companyDescription,
     };
   }
 

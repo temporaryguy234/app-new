@@ -9,6 +9,7 @@ import 'screens/main/main_screen.dart';
 import 'screens/auth/auth_gate.dart';
 import 'services/test_analysis_service.dart';
 import 'firebase_options.dart';
+import 'screens/profile/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +54,7 @@ class LinkuApp extends StatelessWidget {
         home: const AuthWrapper(),
         routes: {
           '/main': (context) => const MainScreen(),
+          '/profile': (context) => const ProfileScreen(),
         },
       ),
     );

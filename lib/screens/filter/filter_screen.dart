@@ -34,58 +34,39 @@ class _FilterScreenState extends State<FilterScreen> {
   
   final List<String> _industries = [
     'IT & Software',
-    'Marketing & Werbung',
-    'Sales & Vertrieb',
-    'Finance & Banking',
-    'HR & Personalwesen',
-    'Design & Kreativ',
-    'Consulting & Beratung',
-    'Healthcare & Medizin',
-    'Bildung & Training',
-    'Engineering & Technik',
-    'Media & Kommunikation',
-    'Retail & Handel',
-    'Manufacturing & Produktion',
-    'Transportation & Logistik',
-    'Real Estate & Immobilien',
-    'Gastronomie & Hotel',
-    'Bau & Handwerk',
-    'Automotive & Fahrzeug',
-    'Energie & Umwelt',
-    'Telekommunikation',
-    'Recht & Justiz',
-    'Versicherung',
-    'Pharma & Biotech',
-    'Aerospace & Luftfahrt',
-    'Entertainment & Events',
-    'Non-Profit & Sozial',
-    'Landwirtschaft',
-    'Mining & Rohstoffe',
-    'Tourismus & Reisen',
-    'Sport & Fitness',
+    'Marketing',
+    'Sales',
+    'Finance',
+    'HR',
+    'Design',
+    'Consulting',
+    'Healthcare',
+    'Education',
+    'Engineering',
+    'Media',
+    'Retail',
+    'Manufacturing',
+    'Transportation',
+    'Real Estate',
   ];
 
   final List<String> _technologies = [
-    // IT & Development
-    'Flutter', 'React', 'Vue.js', 'Angular', 'Node.js', 'Python', 'Java', 'C#', 'PHP', 'Swift', 'Kotlin', 'Dart', 'JavaScript', 'TypeScript', 'Go', 'Rust',
-    // Marketing & Sales
-    'Google Ads', 'Facebook Ads', 'SEO', 'SEM', 'Social Media', 'Content Marketing', 'Email Marketing', 'Analytics', 'CRM', 'Salesforce',
-    // Design & Creative
-    'Photoshop', 'Illustrator', 'Figma', 'Sketch', 'InDesign', 'After Effects', 'Premiere Pro', 'Canva', 'Adobe XD',
-    // Business & Finance
-    'Excel', 'PowerBI', 'Tableau', 'SAP', 'QuickBooks', 'Xero', 'Accounting', 'Financial Analysis', 'Budgeting',
-    // Healthcare & Medical
-    'Medical Software', 'EMR', 'HIPAA', 'Clinical Research', 'Medical Devices', 'Pharmaceutical', 'Healthcare IT',
-    // Engineering & Technical
-    'AutoCAD', 'SolidWorks', 'MATLAB', 'LabVIEW', 'PLC Programming', 'SCADA', 'Industrial Automation',
-    // Languages & Communication
-    'German', 'English', 'French', 'Spanish', 'Italian', 'Portuguese', 'Chinese', 'Japanese', 'Russian', 'Arabic',
-    // Soft Skills
-    'Project Management', 'Leadership', 'Team Management', 'Communication', 'Problem Solving', 'Analytical Thinking',
-    // Industry Specific
-    'CAD', 'CAM', 'CNC', 'Welding', 'Machining', 'Quality Control', 'Supply Chain', 'Logistics', 'Procurement',
-    // Other Skills
-    'Driving License', 'Forklift License', 'Safety Training', 'First Aid', 'CPR', 'Teaching', 'Training', 'Coaching',
+    'Flutter',
+    'React',
+    'Vue.js',
+    'Angular',
+    'Node.js',
+    'Python',
+    'Java',
+    'C#',
+    'PHP',
+    'Swift',
+    'Kotlin',
+    'Dart',
+    'JavaScript',
+    'TypeScript',
+    'Go',
+    'Rust',
   ];
 
   final List<String> _companySizes = [
@@ -110,23 +91,9 @@ class _FilterScreenState extends State<FilterScreen> {
   ];
   
   final List<String> _experienceLevels = [
-    'Keine Erfahrung',
-    '0-1 Jahre',
-    '1-2 Jahre',
-    '2-3 Jahre',
-    '3-5 Jahre',
-    '5-7 Jahre',
-    '7-10 Jahre',
-    '10+ Jahre',
-    'Student',
-    'Praktikant',
-    'Werkstudent',
-    'Berufseinsteiger',
-    'Erfahren',
-    'Senior',
-    'Expert',
-    'Manager',
-    'Director',
+    'Entry Level',
+    'Mid Level',
+    'Senior Level',
   ];
   
   final List<String> _contractTypes = [
@@ -260,16 +227,11 @@ class _FilterScreenState extends State<FilterScreen> {
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       final q = textEditingValue.text.trim().toLowerCase();
                       if (q.isEmpty) return const Iterable<String>.empty();
-                      // erweiterte Vorschläge inkl. Umlaute
+                      // einfache Vorschläge inkl. Umlaute
                       final cities = [
-                        // Deutschland
-                        'Berlin', 'München', 'Köln', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Stuttgart', 'Leipzig', 'Dresden', 'Nürnberg', 'Bremen', 'Hannover', 'Duisburg', 'Bochum', 'Wuppertal', 'Bielefeld', 'Bonn', 'Mannheim', 'Karlsruhe', 'Augsburg', 'Wiesbaden', 'Mönchengladbach', 'Gelsenkirchen', 'Braunschweig', 'Chemnitz', 'Kiel', 'Aachen', 'Halle', 'Magdeburg', 'Freiburg', 'Krefeld', 'Lübeck', 'Oberhausen', 'Erfurt', 'Mainz', 'Rostock', 'Kassel', 'Hagen', 'Hamm', 'Saarbrücken', 'Mülheim', 'Potsdam', 'Ludwigshafen', 'Oldenburg', 'Leverkusen', 'Osnabrück', 'Solingen', 'Heidelberg', 'Herne', 'Neuss', 'Darmstadt', 'Paderborn', 'Regensburg', 'Ingolstadt', 'Würzburg', 'Fürth', 'Wolfsburg', 'Offenbach', 'Ulm', 'Heilbronn', 'Pforzheim', 'Göttingen', 'Bottrop', 'Trier', 'Recklinghausen', 'Reutlingen', 'Bremerhaven', 'Koblenz', 'Bergisch Gladbach', 'Jena', 'Remscheid', 'Erlangen', 'Moers', 'Siegen', 'Hildesheim', 'Salzgitter',
-                        // Österreich
-                        'Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck', 'Klagenfurt', 'Villach', 'Wels', 'Sankt Pölten', 'Dornbirn', 'Steyr', 'Wiener Neustadt', 'Feldkirch', 'Bregenz', 'Leonding', 'Wolfsberg', 'Baden', 'Klosterneuburg', 'Leoben', 'Krems', 'Traun', 'Amstetten', 'Kapfenberg', 'Mödling', 'Hallein', 'Kufstein', 'Traiskirchen', 'Schwechat', 'Braunau am Inn', 'Spittal an der Drau', 'Saalfelden', 'Ansfelden', 'Tulln', 'Hohenems', 'Ternitz', 'Kornenburg', 'Neunkirchen', 'Hard', 'Vöcklabruck', 'Lustenau', 'Brunn am Gebirge', 'Ried im Innkreis', 'Seekirchen', 'Marchtrenk', 'Gmunden', 'Villach', 'Wattens', 'Kitzbühel', 'Zell am See', 'Bad Ischl', 'Hall in Tirol', 'Imst', 'Lienz', 'Sankt Johann im Pongau', 'Bischofshofen', 'Radstadt', 'Mittersill', 'Oberndorf', 'Neumarkt am Wallersee', 'Obertrum', 'Seekirchen', 'Straßwalchen', 'Mattsee', 'Henndorf', 'Eugendorf', 'Thalgau', 'Hof bei Salzburg', 'Kuchl', 'Golling', 'Abtenau', 'Werfen', 'Radstadt', 'Altenmarkt', 'Flachau', 'Wagrain', 'St. Johann im Pongau', 'Bischofshofen', 'Mühlbach', 'Dienten', 'Hüttau', 'Werfenweng', 'Eben im Pongau', 'Filzmoos', 'Untertauern', 'Kleinarl', 'Sankt Veit im Pongau', 'Göriach', 'Hüttschlag', 'Tweng', 'Muhr', 'Ramingstein', 'Thomatal', 'Krakaudorf', 'Krakauebene', 'Mariapfarr', 'Tamsweg', 'Mauterndorf', 'Sankt Michael im Lungau', 'Unternberg', 'Sankt Margarethen im Lungau', 'Weißpriach', 'Zederhaus', 'Sankt Andrä im Lungau', 'Ramingstein', 'Thomatal', 'Krakaudorf', 'Krakauebene', 'Mariapfarr', 'Tamsweg', 'Mauterndorf', 'Sankt Michael im Lungau', 'Unternberg', 'Sankt Margarethen im Lungau', 'Weißpriach', 'Zederhaus', 'Sankt Andrä im Lungau',
-                        // Schweiz
-                        'Zürich', 'Genf', 'Basel', 'Bern', 'Lausanne', 'Winterthur', 'Luzern', 'St. Gallen', 'Lugano', 'Biel', 'Thun', 'Köniz', 'La Chaux-de-Fonds', 'Fribourg', 'Schaffhausen', 'Vernier', 'Chur', 'Uster', 'Sion', 'Neuchâtel', 'Lancy', 'Zug', 'Kriens', 'Rapperswil-Jona', 'Schwyz', 'Frauenfeld', 'Wil', 'Dietikon', 'Baar', 'Riehen', 'Carouge', 'Kreuzlingen', 'Uzwil', 'Wädenswil', 'Montreux', 'Bulle', 'Martigny', 'Aarau', 'Herisau', 'Burgdorf', 'Zofingen', 'Olten', 'Solothurn', 'Burgdorf', 'Thun', 'Spiez', 'Interlaken', 'Grindelwald', 'Lauterbrunnen', 'Mürren', 'Wengen', 'Adelboden', 'Lenk', 'Gstaad', 'Saanen', 'Château-d\'Oex', 'Rougemont', 'Rossinière', 'L\'Etivaz', 'Château-d\'Oex', 'Rougemont', 'Rossinière', 'L\'Etivaz', 'Château-d\'Oex', 'Rougemont', 'Rossinière', 'L\'Etivaz',
-                        // Spezielle Suchbegriffe
-                        'Remote', 'Homeoffice', 'Hybrid', 'Deutschland', 'Österreich', 'Schweiz', 'DACH', 'Europa', 'Weltweit',
+                        'Berlin', 'München', 'Köln', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Stuttgart', 'Leipzig',
+                        'Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck',
+                        'Zürich', 'Genf', 'Basel', 'Bern', 'Lausanne',
                       ];
                       return cities.where((c) => c.toLowerCase().startsWith(q)).take(8);
                     },

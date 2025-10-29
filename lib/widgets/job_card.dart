@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
 import '../models/job_model.dart';
-import '../models/application_data.dart';
-import '../models/resume_analysis_model.dart';
-import '../services/auth_service.dart';
-import '../services/resume_service.dart';
 import '../config/colors.dart';
+import '../services/premium_service.dart';
 
 class JobCard extends StatefulWidget {
   final JobModel job;
-  final VoidCallback? onApply; // optional callback to save on apply
+  final Future<void> Function(JobModel job)? onApply; // optional full override for apply
+  final bool isPremium;
 
   const JobCard({
     super.key,
     required this.job,
     this.onApply,
+    this.isPremium = false,
   });
 
   @override
@@ -24,330 +21,165 @@ class JobCard extends StatefulWidget {
 }
 
 class _JobCardState extends State<JobCard> {
-  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final job = widget.job;
-    return GestureDetector(
-      onVerticalDragUpdate: null, // vertikale Gesten ignorieren
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.75, // VIEL GRÖSSER!
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          // Header with company logo and bookmark
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                // Company logo placeholder
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: AppColors.grey100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.business,
-                    color: AppColors.grey400,
-                    size: 24,
-                  ),
-                ),
-                
-                const SizedBox(width: 12),
-                
-                // Company name and job title
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job.company,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        job.title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Bookmark icon
-                Icon(
-                  Icons.bookmark_border,
-                  color: AppColors.grey400,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GestureDetector(
+          onVerticalDragUpdate: (_) {},
+          child: Container(
+            height: constraints.maxHeight, // fill screen height
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-          ),
-          
-          // Job details
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Location
-                Row(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      job.location,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Salary
-                if (job.salary != null) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.euro_outlined,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        job.salary!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _companyAvatar(job),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                job.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                              ),
+                              if ((job.company ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    job.company!,
+                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                
-                // Tags
-                if (job.tags.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: job.tags.map((tag) => _buildTag(tag)).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Description
-                if (job.description != null) ...[
-                  AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 200),
-                    crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                    firstChild: Text(
-                      job.description!,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _keyFactsLine(job),
+                    const SizedBox(height: 10),
+                    _sectionTitle('Kurzprofil'),
+                    const SizedBox(height: 6),
+                    Text(
+                      _summaryFromJob(job),
                       style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    secondChild: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        job.description!,
-                        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                      child: Text(_expanded ? 'Weniger anzeigen' : 'Mehr anzeigen'),
-                    ),
-                  ),
-                ],
-                
-                // Footer info
-                Row(
-                  children: [
-                    Text(
-                      job.timeAgo,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                    if (job.applicantCount != null) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        '•',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        job.applicantText,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
+                    const SizedBox(height: 14),
+
+                    ...(() {
+                      final req = job.requirements.isNotEmpty ? job.requirements : _compactFromParagraph(job.description);
+                      if (req.isEmpty) return <Widget>[];
+                      return [
+                        _sectionTitle('Was du können musst'),
+                        const SizedBox(height: 8),
+                        ..._bulletList(req),
+                        const SizedBox(height: 16),
+                      ];
+                    })(),
+
+                    ...(() {
+                      final resp = job.responsibilities.isNotEmpty ? job.responsibilities : _compactFromParagraph(job.description);
+                      if (resp.isEmpty) return <Widget>[];
+                      return [
+                        _sectionTitle('Was dich erwartet'),
+                        const SizedBox(height: 8),
+                        ..._bulletList(resp),
+                        const SizedBox(height: 16),
+                      ];
+                    })(),
+
+                    ...(() {
+                      final bens = job.benefits.isNotEmpty ? job.benefits : _compactFromParagraph(job.companyDescription);
+                      if (bens.isEmpty) return <Widget>[];
+                      return [
+                        _sectionTitle('Benefits'),
+                        const SizedBox(height: 8),
+                        ..._bulletList(bens),
+                        const SizedBox(height: 16),
+                      ];
+                    })(),
+
+                    if (job.companySize.isNotEmpty || job.companyDescription.isNotEmpty || job.industry.isNotEmpty) ...[
+                      _sectionTitle('Über das Unternehmen'),
+                      const SizedBox(height: 8),
+                      if (job.industry.isNotEmpty) _bullet('Branche: ${job.industry}'),
+                      if (job.companySize.isNotEmpty) _bullet('Größe: ${job.companySize}'),
+                      if (job.companyDescription.isNotEmpty) _bullet(job.companyDescription),
+                      const SizedBox(height: 16),
                     ],
+
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 16),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (widget.onApply != null) {
+                            await widget.onApply!(widget.job);
+                            return;
+                          }
+                          final service = PremiumService();
+                          final canAuto = await service.canAutoApply();
+                          if (canAuto) {
+                            await service.recordAutoApply();
+                            await _openApplicationLink(context);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Auto‑Bewerbung gestartet')),
+                              );
+                            }
+                          } else {
+                            await _openApplicationLink(context);
+                            if (mounted && !widget.isPremium) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Limit erreicht: Auto‑Bewerben ist mit Premium unbegrenzt.')),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Bewerben'),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.picture_as_pdf_outlined),
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/profile');
+                        },
+                        label: const Text('Mit verbessertem CV bewerben'),
+                      ),
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-          
-          // Job Details Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                
-                // Gehalt
-                if (job.salary != null && job.salary!.isNotEmpty) ...[
-                  _buildDetailRow(Icons.attach_money, 'Gehalt', job.salary!),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Standort mit PLZ
-                if (job.location.isNotEmpty) ...[
-                  _buildDetailRow(Icons.location_on, 'Standort', job.location),
-                  const SizedBox(height: 12),
-                ],
-                
-                if (job.postalCode != null && job.postalCode!.isNotEmpty) ...[
-                  _buildDetailRow(Icons.local_post_office, 'PLZ', job.postalCode!),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Firmengröße
-                if (job.companySize != null && job.companySize!.isNotEmpty) ...[
-                  _buildDetailRow(Icons.business, 'Firmengröße', job.companySize!),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Arbeitszeit
-                if (job.workType != null && job.workType!.isNotEmpty) ...[
-                  _buildDetailRow(Icons.schedule, 'Arbeitszeit', job.workType!),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Branche
-                if (job.industry != null && job.industry!.isNotEmpty) ...[
-                  _buildDetailRow(Icons.category, 'Branche', job.industry!),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Anforderungen
-                if (job.requirements != null && job.requirements!.isNotEmpty) ...[
-                  const Text(
-                    'Anforderungen:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  ...job.requirements!.map((req) => Padding(
-                    padding: const EdgeInsets.only(left: 16, bottom: 4),
-                    child: Text('• $req', style: const TextStyle(fontSize: 13)),
-                  )),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Benefits
-                if (job.benefits != null && job.benefits!.isNotEmpty) ...[
-                  const Text(
-                    'Benefits:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  ...job.benefits!.map((benefit) => Padding(
-                    padding: const EdgeInsets.only(left: 16, bottom: 4),
-                    child: Text('• $benefit', style: const TextStyle(fontSize: 13)),
-                  )),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Verantwortlichkeiten
-                if (job.responsibilities != null && job.responsibilities!.isNotEmpty) ...[
-                  const Text(
-                    'Aufgaben:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  ...job.responsibilities!.map((resp) => Padding(
-                    padding: const EdgeInsets.only(left: 16, bottom: 4),
-                    child: Text('• $resp', style: const TextStyle(fontSize: 13)),
-                  )),
-                  const SizedBox(height: 12),
-                ],
-                
-                // Beschreibung
-                if (job.description != null && job.description!.isNotEmpty) ...[
-                  const Text(
-                    'Beschreibung:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    job.description!,
-                    style: const TextStyle(fontSize: 13, height: 1.4),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ],
-            ),
-          ),
-          
-          const Spacer(),
-          
-          // Apply button
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(20),
-            child: ElevatedButton(
-              onPressed: () async {
-                // Save on apply
-                if (widget.onApply != null) widget.onApply!();
-                await _applyToJob(context);
-              },
-              child: const Text('Bewerben'),
-            ),
-          ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -392,127 +224,166 @@ class _JobCardState extends State<JobCard> {
     );
   }
 
-  Future<void> _applyToJob(BuildContext context) async {
+  Future<void> _openApplicationLink(BuildContext context) async {
+    final job = widget.job;
     if (job.applicationUrl != null && job.applicationUrl!.isNotEmpty) {
       try {
-        // Show confirmation dialog
-        final shouldApply = await _showApplicationDialog(context);
-        if (shouldApply == true) {
-          // Daten aus Lebenslauf-Analyse holen
-          final authService = Provider.of<AuthService>(context, listen: false);
-          final user = authService.currentUser;
-          if (user == null) return;
-          
-          final resumeService = ResumeService();
-          final analysis = await resumeService.getResumeAnalysis(user.uid);
-          
-          if (analysis != null) {
-            final appData = ApplicationData(
-              name: analysis.extractedName ?? user.displayName ?? '',
-              email: analysis.extractedEmail ?? user.email ?? '',
-              phone: analysis.extractedPhone ?? '',
-              address: analysis.extractedAddress ?? '',
-              resumeUrl: analysis.resumeUrl,
-              coverLetter: _generateCoverLetter(analysis, job),
-            );
-            
-            // Daten an externe URL übertragen
-            await _submitApplication(appData, job.applicationUrl!);
-          } else {
-            // Fallback: Direkt zur URL
-            final uri = Uri.parse(job.applicationUrl!);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            } else {
-              _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
-            }
-          }
-        }
+        final uri = Uri.parse(job.applicationUrl!);
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!ok) _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
       } catch (e) {
-        _showErrorSnackBar(context, 'Fehler beim Bewerben: $e');
+        _showErrorSnackBar(context, 'Fehler beim Öffnen des Links');
       }
     } else {
       _showErrorSnackBar(context, 'Kein Bewerbungslink verfügbar');
     }
   }
 
-  String _generateCoverLetter(ResumeAnalysisModel analysis, JobModel job) {
-    return '''
-Sehr geehrte Damen und Herren,
+  Widget _companyAvatar(JobModel job) {
+    final companyName = job.company ?? 'Company';
+    final initials = companyName.split(' ').map((word) => word.isNotEmpty ? word[0].toUpperCase() : '').take(2).join('');
 
-mit großem Interesse habe ich Ihre Stellenausschreibung für "${job.title}" gesehen. 
-Als ${analysis.experienceLevel} mit ${analysis.yearsOfExperience} Jahren Erfahrung in den Bereichen ${analysis.industries.join(', ')} 
-bringe ich folgende Qualifikationen mit:
-
-${analysis.strengths.map((s) => '• $s').join('\n')}
-
-Meine Fähigkeiten umfassen: ${analysis.skills.take(5).join(', ')}
-
-${analysis.summary}
-
-Ich freue mich auf Ihre Rückmeldung und die Möglichkeit, in einem persönlichen Gespräch 
-meine Motivation und Qualifikationen zu erläutern.
-
-Mit freundlichen Grüßen
-${analysis.extractedName ?? ''}
-''';
-  }
-
-  Future<void> _submitApplication(ApplicationData data, String url) async {
-    final uri = Uri.parse(url);
-    final formData = data.toFormData();
-    
-    // POST Request mit vorausgefüllten Daten
-    final response = await http.post(
-      uri,
-      body: formData,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    );
-    
-    if (response.statusCode == 200) {
-      // Erfolgreich beworben
-      print('Bewerbung erfolgreich übermittelt');
-    } else {
-      // Fallback: Direkt zur URL
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<bool?> _showApplicationDialog(BuildContext context) async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bewerbung starten'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Möchten Sie sich bei ${job.company} bewerben?'),
-            const SizedBox(height: 16),
-            const Text(
-              'Ihre Bewerbungsdaten werden automatisch übertragen:',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            const Text('• Persönliche Daten aus Ihrem Profil'),
-            const Text('• Lebenslauf wird automatisch hochgeladen'),
-            const Text('• Anschreiben wird vorausgefüllt'),
-            const Text('• Kontaktdaten werden übertragen'),
-          ],
+    if (job.companyLogo != null && job.companyLogo!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          job.companyLogo!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _initialsBox(initials),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
+      );
+    }
+
+    return _initialsBox(initials);
+  }
+
+  Widget _initialsBox(String initials) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Jetzt bewerben'),
+        ),
+      ),
+    );
+  }
+
+  Widget _keyFactsLine(JobModel job) {
+    final facts = <String>[];
+    
+    if ((job.salary ?? '').isNotEmpty) facts.add(job.salary!);
+    if ((job.workType ?? '').isNotEmpty) facts.add(job.workType!);
+    if ((job.location ?? '').isNotEmpty) {
+      final city = job.location!.split(',').first.trim();
+      facts.add(city);
+    }
+    
+    return Text(
+      facts.join(' • '),
+      style: const TextStyle(
+        fontSize: 13,
+        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  String _summaryFromJob(JobModel j) {
+    // 1) Context line: role + company + city + work type
+    final role = j.title.replaceAll(RegExp(r'\(m\/w\/d\)', caseSensitive: false), '').trim();
+    final company = (j.company ?? '').trim();
+    final city = (j.location ?? '').split(',').first.trim();
+    final workType = ((j.workType ?? '').isNotEmpty ? j.workType : (j.jobType.isNotEmpty ? j.jobType : null));
+
+    final StringBuffer buffer = StringBuffer('Als ');
+    buffer.write(role.isNotEmpty ? role : 'Mitarbeiter');
+    if (company.isNotEmpty) buffer.write(' bei $company');
+    if (city.isNotEmpty) buffer.write(' in $city');
+    if ((workType ?? '').isNotEmpty) buffer.write(' (${workType!})');
+    buffer.write('. ');
+
+    // 2) Duties/benefits line: pick 2–3 concise points
+    List<String> lines = [];
+    if (j.responsibilities.isNotEmpty) lines = j.responsibilities;
+    if (lines.isEmpty && j.requirements.isNotEmpty) lines = j.requirements;
+    if (lines.isEmpty && j.benefits.isNotEmpty) lines = j.benefits;
+
+    final cleaned = lines
+        .map((s) => s.replaceAll(RegExp(r'^[•\\-–]\\s*'), '').trim())
+        .where((s) => s.length >= 8)
+        .map((s) => s.length > 90 ? '${s.substring(0, 90).trimRight()}…' : s)
+        .take(3)
+        .toList();
+
+    if (cleaned.isNotEmpty) {
+      buffer.write('${cleaned.join(', ')}.');
+      return buffer.toString().trim();
+    }
+
+    // 3) Fallback to a compact sentence from description
+    final desc = (j.description ?? '').replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (desc.isNotEmpty) {
+      final m = RegExp(r'[^.!?]{8,150}[.!?]').firstMatch(desc);
+      buffer.write(m != null ? m.group(0) : (desc.length > 150 ? '${desc.substring(0, 150)}…' : desc));
+    }
+    return buffer.toString().trim();
+  }
+
+  List<String> _compactFromParagraph(String? paragraph, {int maxBullets = 4}) {
+    final p = (paragraph ?? '').replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+    if (p.isEmpty) return [];
+    final bullets = p.split(RegExp(r'(?:•|-|–|\u2022)\s+')).where((s) => s.trim().isNotEmpty).toList();
+    if (bullets.length >= 3) return bullets.map((s) => s.trim()).take(maxBullets).toList();
+    final sent = RegExp(r'[^.!?]{8,140}[.!?]').allMatches(p).map((m) => m.group(0)!.trim()).toList();
+    return sent.take(maxBullets).toList();
+  }
+
+  List<Widget> _bulletList(List<String> items, {int max = 4}) {
+    return items.take(max).map(_bullet).toList();
+  }
+
+  Widget _bullet(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• '),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           ),
         ],
       ),
     );
   }
+
+  // Dialog nicht mehr genutzt (kein Anschreiben erforderlich)
 
   void _showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -520,22 +391,6 @@ ${analysis.extractedName ?? ''}
         content: Text(message),
         backgroundColor: AppColors.error,
       ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '$label: $value',
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-      ],
     );
   }
 }

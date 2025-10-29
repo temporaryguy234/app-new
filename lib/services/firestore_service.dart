@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/job_model.dart';
 import '../models/filter_model.dart';
 import '../models/application_model.dart';
+import '../models/job_cache_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -11,17 +12,18 @@ class FirestoreService {
   // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // Check if user has uploaded a resume
+  // Check if user has uploaded a resume / has an analysis
   Future<bool> userHasResume(String userId) async {
     try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('resume_analyses')
-          .limit(1)
-          .get();
-      
-      return doc.docs.isNotEmpty;
+      // Our app stores analysis in top-level collection 'resume_analyses' with docId=userId
+      final analysisDoc = await _firestore.collection('resume_analyses').doc(userId).get();
+      if (analysisDoc.exists) return true;
+
+      // Also accept presence of an uploaded resume metadata in 'resumes'
+      final resumeDoc = await _firestore.collection('resumes').doc(userId).get();
+      if (resumeDoc.exists) return true;
+
+      return false;
     } catch (e) {
       return false;
     }
@@ -277,6 +279,46 @@ class FirestoreService {
           .toList();
     } catch (e) {
       throw Exception('Failed to get applications by status: $e');
+    }
+  }
+
+  // Job cache methods
+  Future<JobCacheModel?> getJobCache(String userId) async {
+    try {
+      final doc = await _firestore.collection('job_cache').doc(userId).get();
+      if (!doc.exists) return null;
+      return JobCacheModel.fromFirestore(doc);
+    } catch (e) {
+      print('Error getting job cache: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveJobCache(JobCacheModel cache) async {
+    try {
+      await _firestore.collection('job_cache').doc(cache.userId).set(cache.toFirestore());
+    } catch (e) {
+      print('Error saving job cache: $e');
+      throw Exception('Failed to save job cache: $e');
+    }
+  }
+
+  Future<void> updateJobOnlineStatus(String userId, Map<String, bool> status) async {
+    try {
+      await _firestore.collection('job_cache').doc(userId).update({
+        'jobOnlineStatus': status,
+        'lastVerifiedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error updating job online status: $e');
+    }
+  }
+
+  Future<void> clearJobCache(String userId) async {
+    try {
+      await _firestore.collection('job_cache').doc(userId).delete();
+    } catch (e) {
+      print('Error clearing job cache: $e');
     }
   }
 }

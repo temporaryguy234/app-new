@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/resume_analysis_model.dart';
+import '../models/search_plan_model.dart';
 
 // Helper casts for robust JSON parsing from LLMs
 num? _asNum(dynamic value) {
@@ -57,6 +59,113 @@ class GeminiService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   
   GeminiService(this._model);
+
+  // Build a search plan from an existing analysis. Returns structured guidance
+  // for SerpAPI queries using only City, CountryEnglish as location.
+  Future<SearchPlan> buildSearchPlan(ResumeAnalysisModel analysis) async {
+    try {
+      final loc = analysis.location;
+      final city = loc.split(',').map((s) => s.trim()).first;
+      final countryEn = loc.contains(',') ? loc.split(',').map((s) => s.trim()).last : '';
+      final serpLocation = (city.isNotEmpty && countryEn.isNotEmpty) ? '$city, $countryEn' : loc;
+
+      final prompt = '''
+AUFGABE
+Ich stelle auf Basis einer Lebenslauf-Analyse perfekte Suchanfragen für Google Jobs zusammen, damit passende Stellen für diese Person gefunden werden.
+
+EINGABEN
+- Analyse-Daten (JSON): {
+  "skills": ${jsonEncode(analysis.skills)},
+  "yearsOfExperience": ${analysis.yearsOfExperience},
+  "experienceLevel": "${analysis.experienceLevel}",
+  "industries": ${jsonEncode(analysis.industries)},
+  "summary": ${jsonEncode(analysis.summary)},
+  "location": ${jsonEncode(analysis.location)}
+}
+
+ZIEL
+- Formuliere 1 bis 3 kompakte Google-Suchanfragen in deutscher Sprache.
+- Jede Suchanfrage bündelt mehrere passende Jobtitel mit OR und endet mit "in CITY".
+- Die Suchanfragen enthalten NICHT das Land.
+- Liefere zusätzlich die Stadt und das Land separat, damit ich sie für SerpAPI-Filter nutzen kann.
+- Nutze realistische Jobtitel, die zu Fähigkeiten, Erfahrung, Studium und aktueller Situation passen (z. B. Werkstudent, Praktikum, Minijob, Teilzeit, Vollzeit, Ferienjob, Studentenjob, Aushilfe, Nebenjob).
+
+REGELN
+- Ausschließlich Deutsch.
+- Ausschließlich ein gültiges JSON-Objekt als Ausgabe, ohne weiteren Text.
+- Maximal 8 Titel pro Query, alle Titel in Anführungszeichen, zwischen den Titeln OR verwenden.
+- Maximal 3 Queries, minimal 1 Query.
+- Stadt aus den Eingaben verwenden. Kein Land in den Suchanfragen.
+- Land nur separat zurückgeben, damit es für die SerpAPI-Filter genutzt werden kann.
+
+AUSGABEFORMAT (JSON)
+{
+  "city": ${jsonEncode(city)},
+  "countryEnglish": ${jsonEncode(countryEn)},
+  "serpLocation": ${jsonEncode(serpLocation)},
+  "queries": [
+    "(\"Titel 1\" OR \"Titel 2\" OR \"Titel 3\") in CITY"
+  ],
+  "titles": [
+    "Titel 1", "Titel 2", "Titel 3"
+  ],
+  "jobTypes": [
+    "Werkstudent", "Praktikum", "Teilzeit", "Vollzeit", "Minijob", "Ferienjob", "Studentenjob", "Aushilfe", "Nebenjob"
+  ]
+}
+
+BEISPIELE (nur zur Orientierung, NICHT ausgeben)
+- Beispiel 1 (Student/in Büro/Service):
+  queries: [
+    "(\"werkstudent\" OR \"studentische hilfskraft\" OR \"bürokraft\" OR \"assistenz\" OR \"kundenservice\") in CITY"
+  ]
+
+- Beispiel 2 (Kaufmännisch/Finanzen):
+  queries: [
+    "(\"buchhalter\" OR \"bilanzbuchhalter\" OR \"finanzbuchhalter\" OR \"sachbearbeiter buchhaltung\") in CITY",
+    "(\"controller\" OR \"junior controller\" OR \"finanzcontroller\") in CITY"
+  ]
+
+- Beispiel 3 (Gastronomie/Küche):
+  queries: [
+    "(\"koch\" OR \"küchenhilfe\" OR \"servicekraft\" OR \"restaurantmitarbeiter\") in CITY"
+  ]
+''';
+
+      // Try with higher token limit, then a single retry if empty
+      String text = '';
+      try {
+        final response = await _model.generateContent(
+          [Content.text(prompt)],
+          generationConfig: GenerationConfig(
+            temperature: 0.1,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json',
+          ),
+        );
+        text = response.text ?? '';
+      } catch (_) {}
+
+      if (text.trim().isEmpty) {
+        try {
+          final retry = await _model.generateContent(
+            [Content.text(prompt)],
+            generationConfig: GenerationConfig(
+              temperature: 0.2,
+              maxOutputTokens: 3072,
+              responseMimeType: 'application/json',
+            ),
+          );
+          text = retry.text ?? '';
+        } catch (_) {}
+      }
+
+      if (text.trim().isEmpty) return SearchPlan.empty();
+      return SearchPlan.fromJson(text);
+    } catch (e) {
+      return SearchPlan.empty();
+    }
+  }
   
   Future<ResumeAnalysisModel> analyzeResume(String resumeText, String userId, String resumeUrl) async {
     try {
@@ -66,17 +175,38 @@ class GeminiService {
       final prompt = _createAnalysisPrompt(resumeText);
       print('📝 Prompt erstellt, starte Firebase AI Call...');
       
-      final response = await _model.generateContent(
-        [Content.text(prompt)],
-        generationConfig: GenerationConfig(
-          temperature: 0.0,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json',
-        ),
-      );
-      final text = response.text ?? '';
+      // First attempt with higher token limit
+      String text = '';
+      try {
+        final response = await _model.generateContent(
+          [Content.text(prompt)],
+          generationConfig: GenerationConfig(
+            temperature: 0.0,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json',
+          ),
+        );
+        text = response.text ?? '';
+      } catch (_) {}
+
+      // Single retry if empty
       if (text.trim().isEmpty) {
-        print('⚠️ Firebase AI lieferte leeren Text (max_tokens). Fallback wird verwendet.');
+        print('⚠️ Firebase AI lieferte leeren Text (max_tokens). Starte Retry...');
+        try {
+          final retry = await _model.generateContent(
+            [Content.text(prompt)],
+            generationConfig: GenerationConfig(
+              temperature: 0.1,
+              maxOutputTokens: 3072,
+              responseMimeType: 'application/json',
+            ),
+          );
+          text = retry.text ?? '';
+        } catch (_) {}
+      }
+
+      if (text.trim().isEmpty) {
+        print('⚠️ Firebase AI lieferte erneut leeren Text. Fallback-Parser wird verwendet.');
       }
       print('✅ Firebase AI Response erhalten: ${text.length} Zeichen');
       
@@ -95,57 +225,17 @@ class GeminiService {
       print('🤖 Starte PDF-Analyse für User: $userId');
       print('📄 PDF URL: $pdfUrl');
       
-      // PDF von Firebase Storage laden
+      // PDF laden und Text extrahieren (robust gegen max_tokens)
       final bytes = await _loadPdfFromStorage(pdfUrl);
       print('📄 PDF geladen: ${bytes.length} Bytes');
-      
-      // Multimodaler Prompt
-      final prompt = """
-      Analysiere den angehängten Lebenslauf. Antworte NUR mit einem gültigen JSON ohne zusätzlichen Text:
+      final pdf = PdfDocument(inputBytes: bytes);
+      final extractor = PdfTextExtractor(pdf);
+      var extracted = extractor.extractText();
+      pdf.dispose();
+      if (extracted.length > 18000) extracted = extracted.substring(0, 18000);
 
-      {
-        "score": number,                   // 1-100
-        "strengths": [string],
-        "improvements": [string], 
-        "skills": [string],
-        "yearsOfExperience": number,
-        "industries": [string],
-        "summary": string,
-        "experienceLevel": "entry" | "mid" | "senior" | "expert",
-        "location": "string"               // Aktueller Standort (Stadt, Land)
-      }
-
-      Bewertungskriterien:
-      - score: 1-100 basierend auf Vollständigkeit, Relevanz, Formatierung
-      - strengths: 3-5 Hauptstärken des Kandidaten
-      - improvements: 3-5 konkrete Verbesserungsvorschläge
-      - skills: 5-10 erkannte technische und soft skills
-      - yearsOfExperience: Geschätzte Berufserfahrung in Jahren
-      - industries: 2-3 relevante Branchen
-      - summary: Kurze Zusammenfassung des Profils
-      - experienceLevel: entry (0-2 Jahre), mid (3-5 Jahre), senior (6-10 Jahre), expert (10+ Jahre)
-      - location: Aktueller Standort aus dem Lebenslauf (Stadt, Land) - z.B. "München, Deutschland", "Wien, Österreich", "Zürich, Schweiz"
-      """;
-
-      print('📝 Multimodaler Prompt erstellt, starte Firebase AI Call...');
-      
-      // Multimodale Anfrage: Text + PDF
-      final response = await _model.generateContent(
-        [Content.multi([TextPart(prompt), InlineDataPart('application/pdf', bytes)])],
-        generationConfig: GenerationConfig(
-          temperature: 0.0,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json',
-        ),
-      );
-      
-      final text = response.text ?? '{}';
-      if (text.trim().isEmpty) {
-        print('⚠️ Firebase AI lieferte leeren Text (max_tokens). Fallback wird verwendet.');
-      }
-      print('✅ Firebase AI Response erhalten: ${text.length} Zeichen');
-      
-      final analysis = _parseAnalysisResponse(text, userId, pdfUrl);
+      print('📝 Text extrahiert (${extracted.length} Zeichen), starte Analyse...');
+      final analysis = await analyzeResume(extracted, userId, pdfUrl);
       print('🎯 PDF-Analyse erfolgreich: Score ${analysis.score}/100');
       
       return analysis;

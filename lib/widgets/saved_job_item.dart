@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/job_model.dart';
 import '../config/colors.dart';
+import '../services/premium_service.dart';
 
 class SavedJobItem extends StatelessWidget {
   final JobModel job;
@@ -214,11 +215,14 @@ class SavedJobItem extends StatelessWidget {
   Future<void> _applyToJob(BuildContext context) async {
     if (job.applicationUrl != null && job.applicationUrl!.isNotEmpty) {
       try {
+        final isPrem = await PremiumService().isPremium();
         final uri = Uri.parse(job.applicationUrl!);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!ok) _showErrorSnackBar(context, 'Link konnte nicht geöffnet werden');
+        else if (!isPrem) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Auto‑Bewerben ist Premium. Seite wurde geöffnet.')),
+          );
         }
       } catch (e) {
         _showErrorSnackBar(context, 'Fehler beim Öffnen des Links');

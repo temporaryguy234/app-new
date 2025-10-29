@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_keys.dart';
 import '../models/job_model.dart';
 import '../models/filter_model.dart';
+import '../models/resume_analysis_model.dart';
 
 class JobService {
   static const String _baseUrl = 'https://serpapi.com/search';
@@ -40,7 +41,7 @@ class JobService {
     required String query,
     required String location,
     String? experienceLevel,
-    JobFilters? filters,
+    FilterModel? filters,
     bool? remote,
     double? minSalary,
     int maxPages = 3,
@@ -62,7 +63,7 @@ class JobService {
           json = await _callSerpAPI(params).timeout(const Duration(seconds: 12));
           break;
         } catch (e) {
-          if (attempts >= 3) rethrow;
+          if (attempts >= 1) rethrow; // Nur 1 Retry statt 3
           await Future.delayed(Duration(milliseconds: 100 + 150 * attempts));
         }
       }
@@ -76,6 +77,21 @@ class JobService {
       nextToken = json['serpapi_pagination']?['next_page_token'] as String?;
       page++;
     } while (nextToken != null && page < maxPages);
+    // Enrichment der ersten 10 Jobs mit Detailseite (kostenbewusst)
+    final toEnrich = all.take(10).toList();
+    for (final j in toEnrich) {
+      // sourceId kann optional fehlen, wenn SerpAPI das Feld nicht liefert
+      final id = j.sourceId ?? '';
+      if (id.isEmpty) continue;
+      try {
+        final listing = await _fetchJobListing(id);
+        if (listing != null) {
+          final enriched = _mergeDetails(j, listing);
+          final idx = all.indexOf(j);
+          if (idx >= 0) all[idx] = enriched;
+        }
+      } catch (_) {}
+    }
 
     return all;
   }
@@ -98,23 +114,7 @@ class JobService {
       'gl': loc['gl']!,
     };
 
-    // Add experience level to query
-    if (experienceLevel != null) {
-      switch (experienceLevel) {
-        case 'entry':
-          params['q'] = '${params['q']} junior';
-          break;
-        case 'mid':
-          params['q'] = '${params['q']} mid';
-          break;
-        case 'senior':
-          params['q'] = '${params['q']} senior';
-          break;
-        case 'expert':
-          params['q'] = '${params['q']} expert';
-          break;
-      }
-    }
+    // Do not append experience level tokens to the query. Keep q exactly as built.
 
     // Add remote filter
     if (remote == true) {
@@ -163,7 +163,7 @@ class JobService {
       final jobResults = data['jobs_results'] as List<dynamic>? ?? [];
       
       for (final jobData in jobResults) {
-        final job = _parseJobFromData(jobData);
+        final job = _parseJob(jobData as Map<String, dynamic>);
         if (job != null) {
           jobs.add(job);
         }
@@ -176,22 +176,44 @@ class JobService {
     return jobs;
   }
 
-  JobModel? _parseJobFromData(Map<String, dynamic> jobData) {
+  // Unified parser used across simple and paged search
+  JobModel? _parseJob(Map<String, dynamic> jobData) {
     try {
       // Extract job details
-      final title = jobData['title'] ?? '';
-      final company = jobData['company_name'] ?? '';
-      final location = jobData['location'] ?? '';
-      final description = jobData['description'] ?? '';
-      final applicationUrl = jobData['apply_options']?[0]?['link'] ?? '';
+      final title = (jobData['title'] ?? '').toString();
+      final company = (jobData['company_name'] ?? jobData['company'] ?? '').toString();
+      final location = (jobData['location'] ?? '').toString();
+      
+      // Extract company logo
+      String? companyLogo;
+      final thumbnail = jobData['thumbnail'];
+      if (thumbnail is String && thumbnail.isNotEmpty) {
+        companyLogo = thumbnail;
+      } else if (jobData['company_logo'] is String) {
+        companyLogo = jobData['company_logo'];
+      }
+      final String description = (jobData['description'] ?? '').toString();
+      final String? sourceId = jobData['job_id']?.toString();
+      final applicationUrl = (jobData['apply_options'] is List && (jobData['apply_options'] as List).isNotEmpty)
+          ? ((jobData['apply_options'][0]['link']) ?? '').toString()
+          : (jobData['apply_link'] ?? jobData['apply_url'] ?? '').toString();
+
+      // Fallback logo from application domain if API did not provide one
+      companyLogo ??= _guessCompanyLogo(applicationUrl);
       
       // Parse salary
       String? salary;
       final salaryData = jobData['salary'];
-      if (salaryData != null) {
-        salary = salaryData['min'] != null && salaryData['max'] != null
-            ? '${salaryData['min']} - ${salaryData['max']} €'
-            : salaryData['min']?.toString() ?? salaryData['max']?.toString();
+      if (salaryData is Map) {
+        final min = salaryData['min'];
+        final max = salaryData['max'];
+        if (min != null && max != null) {
+          salary = '${min.toString()} - ${max.toString()}';
+        } else {
+          salary = (min ?? max)?.toString();
+        }
+      } else if (salaryData != null) {
+        salary = salaryData.toString();
       }
       
       // Parse job type and other details
@@ -200,22 +222,30 @@ class JobService {
       final remotePercentage = _extractRemotePercentage(jobData);
       final experienceLevel = _extractExperienceLevel(jobData);
       
-      // Parse posted date
+      // Parse posted date (absolute timestamp or relative like "3 days ago")
       DateTime postedAt = DateTime.now();
-      final postedDate = jobData['posted_at'];
+      final postedDate = jobData['posted_at'] ?? jobData['detected_extensions']?['posted_at'];
       if (postedDate != null) {
-        // Try to parse different date formats
-        try {
-          postedAt = DateTime.parse(postedDate);
-        } catch (e) {
-          // If parsing fails, use current date
-          postedAt = DateTime.now();
-        }
+        final s = postedDate.toString();
+        DateTime? parsed = _tryParseIsoDate(s);
+        parsed ??= _tryParseRelativeAge(s);
+        postedAt = parsed ?? DateTime.now();
       }
       
       // Extract skills and industries from job data
       final skills = _extractSkills(jobData);
       final industries = _extractIndustries(jobData);
+
+      // Job highlights and company details
+      final highlights = jobData['job_highlights'];
+      final List<String> requirements = _extractList(_findHighlightsSection(highlights, ['requirements','qualifications','anforderungen','profil']));
+      final List<String> responsibilities = _extractList(_findHighlightsSection(highlights, ['responsibilities','aufgaben']));
+      final List<String> benefits = _extractList(_findHighlightsSection(highlights, ['benefits','leistungen']));
+
+      final companySize = (jobData['company_size'] ?? jobData['detected_extensions']?['company_size'] ?? '').toString();
+      final workType = (jobData['schedule_type'] ?? jobData['work_from_home'] ?? '').toString();
+      final industry = (jobData['industry'] ?? '').toString();
+      final companyDescription = (jobData['company_description'] ?? '').toString();
       
       // Generate unique ID
       final id = '${company}_${title}_${DateTime.now().millisecondsSinceEpoch}'.hashCode.toString();
@@ -224,9 +254,10 @@ class JobService {
         id: id,
         title: title,
         company: company,
+        companyLogo: companyLogo,
         location: location,
         salary: salary,
-        description: description,
+        description: description.isNotEmpty ? description : null,
         tags: tags,
         remotePercentage: remotePercentage,
         jobType: jobType,
@@ -236,20 +267,162 @@ class JobService {
         applicantCount: _extractApplicantCount(jobData),
         skills: skills,
         industries: industries,
-        // Neue Felder für mehr Job-Daten
-        requirements: _extractList(jobData['job_highlights']?['requirements']),
-        benefits: _extractList(jobData['job_highlights']?['benefits']),
-        responsibilities: _extractList(jobData['job_highlights']?['responsibilities']),
-        companySize: jobData['company_size'] ?? '',
-        workType: jobData['schedule_type'] ?? '',
-        industry: jobData['industry'] ?? '',
-        companyDescription: jobData['company_description'] ?? '',
-        postalCode: _extractPostalCode(location),
+        requirements: requirements,
+        responsibilities: responsibilities,
+        benefits: benefits,
+        companySize: companySize,
+        workType: workType,
+        industry: industry,
+        companyDescription: companyDescription,
+        // source id wird optional per fromMap unterstützt, wenn im Modell vorhanden
       );
     } catch (e) {
       print('Fehler beim Parsen eines Jobs: $e');
       return null;
     }
+  }
+
+  // --- Helpers: derive a best-effort company logo from application URL domain ---
+  String? _guessCompanyLogo(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try {
+      uri = Uri.parse(applyUrl);
+    } catch (_) {
+      return null;
+    }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    // Avoid obvious job boards where the host won't reflect the employer's brand
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    // Prefer Clearbit logos. If not found, Image.network will fall back via errorBuilder in the widget.
+    return 'https://logo.clearbit.com/$host';
+  }
+
+  DateTime? _tryParseIsoDate(String input) {
+    try {
+      return DateTime.parse(input);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  DateTime? _tryParseRelativeAge(String input) {
+    final lower = input.toLowerCase();
+    final now = DateTime.now();
+    final numMatch = RegExp(r"(\d+)").firstMatch(lower);
+    if (numMatch == null) return null;
+    final n = int.tryParse(numMatch.group(1)!);
+    if (n == null) return null;
+
+    if (lower.contains('hour')) return now.subtract(Duration(hours: n));
+    if (lower.contains('std')) return now.subtract(Duration(hours: n)); // de: Stunden
+    if (lower.contains('minute') || lower.contains('min')) return now.subtract(Duration(minutes: n));
+    if (lower.contains('day')) return now.subtract(Duration(days: n));
+    if (lower.contains('week')) return now.subtract(Duration(days: 7 * n));
+    if (lower.contains('month')) return now.subtract(Duration(days: 30 * n));
+    if (lower.contains('year')) return now.subtract(Duration(days: 365 * n));
+
+    // Patterns like "30+ days ago"
+    if (lower.contains('day')) return now.subtract(Duration(days: n));
+    return null;
+  }
+
+  // Parser for paged results
+  List<JobModel> _parseJobs(Map<String, dynamic> data) {
+    final results = <JobModel>[];
+    try {
+      final list = data['jobs_results'] as List<dynamic>? ?? const [];
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          final j = _parseJob(item);
+          if (j != null) results.add(j);
+        }
+      }
+    } catch (e) {
+      print('Fehler beim Parsen der Ergebnisse: $e');
+    }
+    return results;
+  }
+
+  Future<Map<String, dynamic>?> _fetchJobListing(String jobId) async {
+    final uri = Uri.parse(_baseUrl).replace(queryParameters: {
+      'api_key': ApiKeys.serpApiKey,
+      'engine': 'google_jobs_listing',
+      'q': jobId,
+    });
+    final resp = await http.get(uri).timeout(const Duration(seconds: 12));
+    if (resp.statusCode != 200) return null;
+    return jsonDecode(resp.body);
+  }
+
+  JobModel _mergeDetails(JobModel base, Map<String, dynamic> listing) {
+    List<String> _list(dynamic x) => x is List ? x.map((e)=>e.toString()).toList() : const [];
+    final h = listing['job_highlights'];
+    final ext = listing['detected_extensions'] ?? {};
+    final salaryExt = ext['salary']?.toString();
+    final addr = listing['address']?.toString() ?? '';
+    return JobModel(
+      id: base.id,
+      title: base.title,
+      company: base.company,
+      companyLogo: base.companyLogo,
+      location: addr.isNotEmpty ? addr : base.location,
+      salary: salaryExt ?? base.salary,
+      description: listing['description']?.toString() ?? base.description,
+      sourceId: base.sourceId,
+      tags: base.tags,
+      remotePercentage: base.remotePercentage,
+      jobType: base.jobType,
+      experienceLevel: base.experienceLevel,
+      applicationUrl: base.applicationUrl,
+      postedAt: base.postedAt,
+      applicantCount: base.applicantCount,
+      distance: base.distance,
+      skills: base.skills,
+      industries: base.industries,
+      requirements: base.requirements.isNotEmpty ? base.requirements : _list(h?['requirements']),
+      responsibilities: base.responsibilities.isNotEmpty ? base.responsibilities : _list(h?['responsibilities']),
+      benefits: base.benefits.isNotEmpty ? base.benefits : _list(h?['benefits']),
+      companySize: base.companySize.isNotEmpty ? base.companySize : (listing['company_size']?.toString() ?? ''),
+      workType: base.workType.isNotEmpty ? base.workType : (listing['schedule_type']?.toString() ?? ''),
+      industry: base.industry.isNotEmpty ? base.industry : (listing['industry']?.toString() ?? ''),
+      companyDescription: base.companyDescription.isNotEmpty ? base.companyDescription : (listing['company_description']?.toString() ?? ''),
+    );
+  }
+
+  List<String> _extractList(dynamic section) {
+    if (section == null) return const [];
+    if (section is List) {
+      return section.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList();
+    }
+    if (section is Map && section['items'] is List) {
+      return (section['items'] as List).map((e) => e.toString()).toList();
+    }
+    return const [];
+  }
+
+  dynamic _findHighlightsSection(dynamic highlights, List<String> keys) {
+    if (highlights == null) return null;
+    // SerpAPI often returns a List of {title, items}
+    if (highlights is List) {
+      for (final h in highlights) {
+        final title = (h is Map ? (h['title'] ?? '') : '').toString().toLowerCase();
+        for (final k in keys) {
+          if (title.contains(k)) return h['items'];
+        }
+      }
+    }
+    if (highlights is Map) {
+      for (final k in keys) {
+        if (highlights[k] != null) return highlights[k];
+      }
+    }
+    return null;
   }
 
   String _extractJobType(Map<String, dynamic> jobData) {
@@ -305,7 +478,6 @@ class JobService {
 
   String? _extractExperienceLevel(Map<String, dynamic> jobData) {
     final title = jobData['title']?.toString().toLowerCase() ?? '';
-    final description = jobData['description']?.toString().toLowerCase() ?? '';
     
     if (title.contains('senior') || title.contains('lead') || title.contains('manager')) {
       return 'Senior';
@@ -621,15 +793,47 @@ class JobService {
     return s;
   }
 
-  List<String> _extractList(dynamic data) {
-    if (data == null) return [];
-    if (data is List) return data.map((e) => e.toString()).toList();
-    if (data is String) return [data];
-    return [];
-  }
+  /// Light job search - only 1 query for cost efficiency
+  Future<List<JobModel>> searchJobsLight(ResumeAnalysisModel analysis) async {
+    try {
+      print('🔍 Light job search - 1 query only');
 
-  String _extractPostalCode(String location) {
-    final match = RegExp(r'\b(\d{4,5})\b').firstMatch(location);
-    return match?.group(1) ?? '';
+      // Build a concise query from available analysis fields (skills + seniority)
+      final topSkills = (analysis.skills).where((s) => s.trim().isNotEmpty).take(3).join(' ');
+      final seniority = () {
+        switch (analysis.experienceLevel) {
+          case 'entry':
+            return 'junior';
+          case 'mid':
+            return 'mid';
+          case 'senior':
+            return 'senior';
+          case 'expert':
+            return 'lead';
+          default:
+            return '';
+        }
+      }();
+
+      final parts = <String>[];
+      if (topSkills.isNotEmpty) parts.add(topSkills);
+      if (seniority.isNotEmpty) parts.add(seniority);
+      final query = parts.isEmpty ? 'job' : parts.join(' ');
+
+      final location = analysis.location.isNotEmpty ? analysis.location : 'Germany';
+
+      final jobs = await searchJobsPaged(
+        query: query,
+        location: location,
+        experienceLevel: analysis.experienceLevel,
+        maxPages: 1, // Only 1 page for light search
+      );
+
+      print('✅ Light search found ${jobs.length} jobs');
+      return jobs;
+    } catch (e) {
+      print('❌ Light job search failed: $e');
+      return [];
+    }
   }
 }

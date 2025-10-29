@@ -3,7 +3,7 @@ class ApiKeys {
   static const String geminiApiKey = 'AIzaSyBQbziluDdPRv9HG1gLHnqosRxnE4eGfIc';
   
   // SerpAPI Key
-  static const String serpApiKey = 'cbeaa0e56898eaf17abded5845e494f812681a5086a365a72f2fb39df65a8aa4';
+  static const String serpApiKey = 'd3ec4532df52589554a523e1f5d1749df1f866fe169c0dd49dbfdb85bd630e7d';
   
   // Firebase Config
   static const String firebaseProjectId = 'app-project-e5b9a';

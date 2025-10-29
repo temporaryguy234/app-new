@@ -15,11 +15,13 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   List<JobModel> _savedJobs = [];
   bool _isLoading = true;
+  late final Stream<List<JobModel>> _savedStream;
 
   @override
   void initState() {
     super.initState();
     _loadSavedJobs();
+    _savedStream = _firestoreService.getSavedJobsStream();
   }
 
   Future<void> _loadSavedJobs() async {
@@ -81,43 +83,41 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _savedJobs.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.bookmark_outline,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Noch keine gespeicherten Jobs',
-                        style: TextStyle(
-                          fontSize: 18,
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<JobModel>>(
+              stream: _savedStream,
+              builder: (context, snapshot) {
+                final list = snapshot.data ?? _savedJobs;
+                if (list.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.bookmark_outline,
+                          size: 64,
                           color: AppColors.textSecondary,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Swipe Jobs nach rechts um sie zu speichern',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
+                        const SizedBox(height: 16),
+                        Text(
+                          'Noch keine gespeicherten Jobs',
+                          style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
+                        const SizedBox(height: 8),
+                        Text(
+                          'Swipe Jobs nach rechts um sie zu speichern',
+                          style: TextStyle(color: AppColors.textTertiary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _savedJobs.length,
+                  itemCount: list.length,
                   itemBuilder: (context, index) {
-                    final job = _savedJobs[index];
+                    final job = list[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: SavedJobItem(
@@ -126,7 +126,9 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
                       ),
                     );
                   },
-                ),
+                );
+              },
+            ),
     );
   }
 }

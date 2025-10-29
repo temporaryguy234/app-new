@@ -27,10 +27,9 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const SwipeScreen(),
     const SavedJobsScreen(),
-    const ApplicationsScreen(),
-    const FilterScreen(),
-    const ProfileScreen(),
     const SpecialsScreen(),
+    const ApplicationsScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -48,6 +47,10 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         type: BottomNavigationBarType.fixed,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        selectedIconTheme: const IconThemeData(size: 34),
+        unselectedIconTheme: const IconThemeData(size: 30),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -60,24 +63,19 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Gespeichert',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.star_border),
+            activeIcon: Icon(Icons.star),
+            label: 'Specials',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.work_outline),
             activeIcon: Icon(Icons.work),
             label: 'Bewerbungen',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.tune_outlined),
-            activeIcon: Icon(Icons.tune),
-            label: 'Filter',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star_border),
-            activeIcon: Icon(Icons.star),
-            label: 'Specials',
           ),
         ],
       ),
