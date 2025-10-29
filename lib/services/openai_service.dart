@@ -39,6 +39,9 @@ $resumeText
 
   Future<String> _callOpenAIAPI(String prompt) async {
     final url = Uri.parse(_baseUrl);
+    if (ApiKeys.openaiApiKey.isEmpty) {
+      throw Exception('OPENAI_API_KEY is not configured');
+    }
     
     final requestBody = {
       "model": "gpt-3.5-turbo",
