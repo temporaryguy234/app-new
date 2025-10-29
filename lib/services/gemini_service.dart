@@ -299,7 +299,8 @@ Bewertungskriterien:
 
   ResumeAnalysisModel _parseAnalysisResponse(String response, String userId, String resumeUrl) {
     try {
-      print('🔍 Raw Response: ${response.substring(0, response.length.clamp(0, 100))}...');
+      final rawPreviewEnd = response.length > 100 ? 100 : response.length;
+      print('🔍 Raw Response: ${response.substring(0, rawPreviewEnd)}...');
       
       // Clean the response to extract JSON
       String cleanResponse = response.trim();
@@ -320,7 +321,8 @@ Bewertungskriterien:
       
       // Additional cleaning for newlines
       cleanResponse = cleanResponse.trim();
-      print('🔍 Cleaned Response: ${cleanResponse.substring(0, cleanResponse.length.clamp(0, 100))}...');
+      final cleanPreviewEnd = cleanResponse.length > 100 ? 100 : cleanResponse.length;
+      print('🔍 Cleaned Response: ${cleanResponse.substring(0, cleanPreviewEnd)}...');
       
       final Map<String, dynamic> data = jsonDecode(cleanResponse);
 
