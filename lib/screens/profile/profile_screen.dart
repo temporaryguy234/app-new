@@ -8,6 +8,7 @@ import '../scoring/resume_scoring_screen.dart';
 import '../upload/resume_upload_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/cv_export_service.dart';
+import '../auth/auth_gate.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -72,7 +73,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await authService.signOut();
       
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        // Return to auth flow; clear navigation stack
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -703,8 +708,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _getScoreColor(int score) {
-    if (score >= 8) return AppColors.success;
-    if (score >= 6) return AppColors.warning;
+    // Interpret score on a 0–100 scale
+    if (score >= 80) return AppColors.success;
+    if (score >= 60) return AppColors.warning;
     return AppColors.error;
   }
 

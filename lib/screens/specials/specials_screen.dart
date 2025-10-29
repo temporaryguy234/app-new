@@ -280,6 +280,12 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
+              // Company logo top-left
+              Positioned(
+                top: 20,
+                left: 20,
+                child: _companyLogoChip(job, size: 36),
+              ),
               // Background: unified blue gradient (same as grid)
               Positioned.fill(
                 child: DecoratedBox(
@@ -543,11 +549,20 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _cleanTitle(job),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _companyLogoChip(job, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _cleanTitle(job),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ),
               if (summary.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -581,6 +596,49 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // Small company avatar/logo helper
+  Widget _companyLogoChip(JobModel job, {double size = 24}) {
+    final logo = job.companyLogo;
+    final company = job.company.trim();
+    final initials = company.isNotEmpty
+        ? company.split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').take(2).join('')
+        : '•';
+    final borderRadius = BorderRadius.circular(8);
+    if (logo != null && logo.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.network(
+          logo,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _initialsBox(initials, size),
+        ),
+      );
+    }
+    return _initialsBox(initials, size);
+  }
+
+  Widget _initialsBox(String initials, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: (size * 0.45).clamp(10, 16).toDouble(),
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
         ),
       ),
     );
