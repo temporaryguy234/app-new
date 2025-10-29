@@ -280,16 +280,17 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
-              // Background: unified blue gradient (same as grid)
+              // Company logo top-left
+              Positioned(
+                top: 20,
+                left: 20,
+                child: _companyLogoChip(job, size: 36),
+              ),
+              // Background: unified blue gradient (uses app token)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      // Slightly richer, sky‑blue gradient to match the reference
-                      colors: [Color(0xFFEAF4FF), Color(0xFFD3E9FF)],
-                    ),
+                    gradient: AppColors.blueSurface,
                   ),
                 ),
               ),
@@ -356,10 +357,10 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
                   ),
                 ),
               ),
-              // Center hook: white card with lead + bullets (Hinge-like) - MOVED LOWER
+              // Center hook: white card with lead + bullets (Hinge-like) - moved slightly up to avoid overlap
               Positioned.fill(
               child: Align(
-                alignment: const Alignment(0, 0.75),
+                alignment: const Alignment(0, 0.6),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                      child: Container(
@@ -410,7 +411,7 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
               ),
               // Soft bottom fade (already covered by gradient); keep star button only
               Positioned(
-                bottom: 20,
+                bottom: 28,
                 right: 20,
                 child: GestureDetector(
                   onTap: () => _onStarJob(job),
@@ -530,7 +531,6 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            // Match teaser card blue
             colors: [Color(0xFFEAF4FF), Color(0xFFD3E9FF)],
           ),
           border: Border.all(color: AppColors.border.withOpacity(0.5)),
@@ -543,11 +543,20 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _cleanTitle(job),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _companyLogoChip(job, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _cleanTitle(job),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ),
               if (summary.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -581,6 +590,49 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // Small company avatar/logo helper
+  Widget _companyLogoChip(JobModel job, {double size = 24}) {
+    final logo = job.companyLogo;
+    final company = job.company.trim();
+    final initials = company.isNotEmpty
+        ? company.split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').take(2).join('')
+        : '•';
+    final borderRadius = BorderRadius.circular(8);
+    if (logo != null && logo.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.network(
+          logo,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _initialsBox(initials, size),
+        ),
+      );
+    }
+    return _initialsBox(initials, size);
+  }
+
+  Widget _initialsBox(String initials, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontSize: (size * 0.45).clamp(10, 16).toDouble(),
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
         ),
       ),
     );
@@ -874,17 +926,14 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
   }
 
   Widget _factChip(String text, Color bg, Color fg) {
+    // Align to app-wide pill style for consistency
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: fg.withOpacity(0.25)),
-        boxShadow: [
-          BoxShadow(color: fg.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2)),
-        ],
+      decoration: const ShapeDecoration(
+        color: Colors.white,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
       ),
-      child: Text(text, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700)),
+      child: Text(text, style: const TextStyle(color: AppColors.ink700, fontSize: 12, fontWeight: FontWeight.w700)),
     );
   }
 
@@ -1072,7 +1121,21 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
     if (hasRemote) facts.add('Remote möglich');
 
     if (facts.length < 3 && j.benefits.isNotEmpty) facts.add(j.benefits.first);
-    return facts.take(3).toList();
+    // Enrich with tags or skills if still too few
+    if (facts.length < 2 && j.tags.isNotEmpty) {
+      for (final t in j.tags) {
+        if (facts.length >= 3) break; final s = _shortLabel(t);
+        if (!facts.contains(s) && s.isNotEmpty) facts.add(s);
+      }
+    }
+    if (facts.length < 2 && j.skills.isNotEmpty) {
+      for (final t in j.skills) {
+        if (facts.length >= 3) break; final s = _shortLabel(t);
+        if (!facts.contains(s) && s.isNotEmpty) facts.add(s);
+      }
+    }
+    if (facts.isEmpty) facts.addAll(['Schneller Start','Gute Bedingungen']);
+    return facts.take(3).map(_shortLabel).toList();
   }
 
   Widget _pill(String text) {
@@ -1083,8 +1146,14 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.border.withOpacity(0.6)),
       ),
-      child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(_shortLabel(text), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
     );
+  }
+
+  String _shortLabel(String s) {
+    final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (t.length <= 20) return t;
+    return t.substring(0, 19).trimRight() + '…';
   }
 }
 

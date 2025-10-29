@@ -144,7 +144,13 @@ class JobService {
 
   Future<Map<String, dynamic>> _callSerpAPI(Map<String, String> params) async {
     final uri = Uri.parse(_baseUrl).replace(queryParameters: params);
-    print('🔗 SERP GET: ${uri.toString().replaceAll(ApiKeys.serpApiKey, '***')}');
+    // Log a sanitized URI without exposing the API key
+    final sanitizedParams = Map<String, String>.from(params);
+    if (sanitizedParams.containsKey('api_key')) {
+      sanitizedParams['api_key'] = '***';
+    }
+    final safeUri = Uri.parse(_baseUrl).replace(queryParameters: sanitizedParams);
+    print('🔗 SERP GET: $safeUri');
     
     final response = await http.get(uri).timeout(const Duration(seconds: 12));
     print('📦 SERP status: ${response.statusCode}, bytes: ${response.bodyBytes.length}');

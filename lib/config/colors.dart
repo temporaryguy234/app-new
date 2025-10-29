@@ -8,6 +8,8 @@ class AppColors {
   
   // Background Colors
   static const Color background = Color(0xFFF8F9FA);
+  // Page background to match modern light style
+  static const Color page = Color(0xFFF6F7FA);
   static const Color surface = Colors.white;
   static const Color cardBackground = Colors.white;
   
@@ -15,6 +17,11 @@ class AppColors {
   static const Color textPrimary = Color(0xFF1A1A1A);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textTertiary = Color(0xFF9CA3AF);
+  // Neutral ink tones for chips/meta
+  static const Color ink200 = Color(0xFFE2E8F0);
+  static const Color ink400 = Color(0xFF94A3B8);
+  static const Color ink500 = Color(0xFF64748B);
+  static const Color ink700 = Color(0xFF334155);
   
   // Status Colors
   static const Color success = Color(0xFF10B981);
@@ -42,4 +49,11 @@ class AppColors {
   static const Color border = Color(0xFFE5E7EB);
   static const Color onPrimary = Colors.white;
   static const Color info = Color(0xFF3B82F6);
+
+  // Light blue surface gradient used in headers/sections
+  static const Gradient blueSurface = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFEAF4FF), Color(0xFFD3E9FF)],
+  );
 }

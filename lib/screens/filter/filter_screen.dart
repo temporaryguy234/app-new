@@ -103,6 +103,22 @@ class _FilterScreenState extends State<FilterScreen> {
     'Werkstudent',
   ];
 
+  final List<String> _workSchedules = [
+    'Vollzeit',
+    'Teilzeit',
+    'Schicht',
+  ];
+
+  final List<(String,int?)> _publishedOptions = [
+    ('Alle', null),
+    ('24 Std', 1),
+    ('3 Tage', 3),
+    ('7 Tage', 7),
+    ('14 Tage', 14),
+  ];
+
+  final List<String> _languages = ['Deutsch', 'Englisch'];
+
   @override
   void initState() {
     super.initState();
@@ -370,6 +386,27 @@ class _FilterScreenState extends State<FilterScreen> {
               ),
             ),
             
+            // Contract Types
+            _buildSection(
+              title: 'Vertragsart',
+              icon: Icons.assignment_outlined,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _contractTypes.map((ct) => _buildChip(
+                  label: ct,
+                  selected: _filters.contractTypes.contains(ct),
+                  onSelected: (selected) {
+                    setState(() {
+                      final list = List<String>.from(_filters.contractTypes);
+                      selected ? list.add(ct) : list.remove(ct);
+                      _filters = _filters.copyWith(contractTypes: list);
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
+            
             // Remote Work Filter
             _buildSection(
               title: 'Remote-Arbeit',
@@ -393,6 +430,27 @@ class _FilterScreenState extends State<FilterScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            // Arbeitszeitmodell
+            _buildSection(
+              title: 'Arbeitszeitmodell',
+              icon: Icons.schedule_outlined,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _workSchedules.map((w) => _buildChip(
+                  label: w,
+                  selected: _filters.workSchedules?.contains(w) ?? false,
+                  onSelected: (selected) {
+                    setState(() {
+                      final list = List<String>.from(_filters.workSchedules ?? []);
+                      selected ? list.add(w) : list.remove(w);
+                      _filters = _filters.copyWith(workSchedules: list);
+                    });
+                  },
+                )).toList(),
               ),
             ),
             
@@ -445,6 +503,28 @@ class _FilterScreenState extends State<FilterScreen> {
                 )).toList(),
               ),
             ),
+
+            // Veröffentlicht seit
+            _buildSection(
+              title: 'Veröffentlicht seit',
+              icon: Icons.new_releases_outlined,
+              child: Wrap(
+                spacing: 8,
+                children: _publishedOptions.map((opt) {
+                  final label = opt.$1; final days = opt.$2;
+                  final selected = _filters.publishedWithinDays == days;
+                  return ChoiceChip(
+                    label: Text(label),
+                    selected: selected,
+                    onSelected: (_) {
+                      setState(() {
+                        _filters = _filters.copyWith(publishedWithinDays: days);
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
             
             // Technologies Filter
             _buildSection(
@@ -468,6 +548,44 @@ class _FilterScreenState extends State<FilterScreen> {
                     });
                   },
                 )).toList(),
+              ),
+            ),
+            
+            // Sprache
+            _buildSection(
+              title: 'Sprache',
+              icon: Icons.language_outlined,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _languages.map((lang) => _buildChip(
+                  label: lang,
+                  selected: _filters.languages?.contains(lang) ?? false,
+                  onSelected: (selected) {
+                    setState(() {
+                      final list = List<String>.from(_filters.languages ?? []);
+                      selected ? list.add(lang) : list.remove(lang);
+                      _filters = _filters.copyWith(languages: list);
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
+            
+            // Nur mit Gehaltsangabe
+            _buildSection(
+              title: 'Erweiterte Optionen',
+              icon: Icons.tune_outlined,
+              child: Row(
+                children: [
+                  const Expanded(child: Text('Nur mit Gehaltsangabe')),
+                  Switch(
+                    value: _filters.onlyWithSalary == true,
+                    onChanged: (v) {
+                      setState(() { _filters = _filters.copyWith(onlyWithSalary: v); });
+                    },
+                  )
+                ],
               ),
             ),
             

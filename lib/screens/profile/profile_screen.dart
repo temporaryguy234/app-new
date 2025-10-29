@@ -8,6 +8,7 @@ import '../scoring/resume_scoring_screen.dart';
 import '../upload/resume_upload_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/cv_export_service.dart';
+import '../auth/auth_gate.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -72,7 +73,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await authService.signOut();
       
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        // Return to auth flow; clear navigation stack
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -91,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.page,
         body: CustomScrollView(
           slivers: [
             // Clean white header to match app style
@@ -102,7 +107,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: Colors.white,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  color: Colors.white,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.blueSurface,
+                  ),
                   child: SafeArea(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -230,9 +237,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   unselectedLabelColor: AppColors.textSecondary,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   tabs: const [
-                    Tab(text: 'Erhalte mehr'),
-                    Tab(text: 'Sicherheit'),
-                    Tab(text: 'Mein Konto'),
+                    Tab(text: 'Premium'),
+                    Tab(text: 'Analysen'),
+                    Tab(text: 'Konto'),
                   ],
                 ),
               ),
@@ -244,7 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : TabBarView(
                       children: [
                         _tabErhalteMehr(),
-                        _tabSicherheit(),
+                        _tabAnalysen(),
                         _tabMeinKonto(),
                       ],
                     ),
@@ -440,34 +447,131 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _tabMeinKonto() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Card(
+      child: Card(
+        child: Column(
+          children: [
+            _buildSettingsItem(
+              icon: Icons.notifications_outlined,
+              title: 'Benachrichtigungen',
+              subtitle: 'Push-Benachrichtigungen verwalten',
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            _buildSettingsItem(
+              icon: Icons.person_outline,
+              title: 'Profil & Name',
+              subtitle: 'Profilangaben bearbeiten',
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            _buildSettingsItem(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Datenschutz',
+              subtitle: 'Datenschutzeinstellungen',
+              onTap: () {},
+            ),
+            const Divider(height: 1),
+            _buildSettingsItem(
+              icon: Icons.account_circle_outlined,
+              title: 'Account wechseln',
+              subtitle: 'Mit Google oder Apple anmelden',
+              onTap: _showAccountOptions,
+            ),
+            const Divider(height: 1),
+            _buildSettingsItem(
+              icon: Icons.info_outline,
+              title: 'Über Linku',
+              subtitle: 'Version 1.0.0',
+              onTap: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tabAnalysen() {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
+    if (user == null) {
+      return const Center(child: Text('Nicht angemeldet'));
+    }
+    return Column(
+      children: [
+        // Top bar for saved analyses
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Card(
             child: ListTile(
               leading: const Icon(Icons.analytics_outlined, color: AppColors.primary),
               title: const Text('Gespeicherte Analysen'),
-              subtitle: const Text('Alle bisherigen Lebenslauf-Analysen ansehen'),
+              subtitle: const Text('Alle bisherigen Analysen ansehen'),
               trailing: const Icon(Icons.chevron_right),
               onTap: _openAnalysisList,
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
+        ),
+        // Upload button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ResumeUploadScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => ResumeUploadScreen()),
                 );
               },
               icon: const Icon(Icons.upload_file),
-              label: Text(_analysis != null ? 'Neuen Lebenslauf hochladen' : 'Lebenslauf hochladen'),
+              label: const Text('Neuen Lebenslauf hochladen'),
             ),
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('resume_analyses')
+                .where('userId', isEqualTo: user.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              final docs = snapshot.data!.docs.toList();
+              docs.sort((a, b) {
+                final ma = a.data() as Map<String, dynamic>;
+                final mb = b.data() as Map<String, dynamic>;
+                final ta = ma['createdAt'];
+                final tb = mb['createdAt'];
+                if (ta is Timestamp && tb is Timestamp) return tb.compareTo(ta);
+                return 0;
+              });
+              if (docs.isEmpty) {
+                return const Center(child: Text('Noch keine Analysen'));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => const Divider(height: 0),
+                itemBuilder: (context, i) {
+                  final raw = docs[i].data() as Map<String, dynamic>;
+                  final m = {...raw, 'id': raw['id'] ?? docs[i].id};
+                  final score = (m['score'] ?? 0).toString();
+                  final lvl = (m['experienceLevel'] ?? '').toString();
+                  final summary = (m['summary'] ?? '').toString();
+                  return ListTile(
+                    leading: const Icon(Icons.insert_chart_outlined),
+                    title: Text('$score/100  •  $lvl'),
+                    subtitle: Text(summary, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      final analysis = ResumeAnalysisModel.fromMap(m);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => ResumeScoringScreen(analysis: analysis)));
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -703,8 +807,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _getScoreColor(int score) {
-    if (score >= 8) return AppColors.success;
-    if (score >= 6) return AppColors.warning;
+    // Interpret score on a 0–100 scale
+    if (score >= 80) return AppColors.success;
+    if (score >= 60) return AppColors.warning;
     return AppColors.error;
   }
 

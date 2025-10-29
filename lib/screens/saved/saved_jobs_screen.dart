@@ -3,6 +3,8 @@ import '../../config/colors.dart';
 import '../../models/job_model.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/saved_job_item.dart';
+import '../../widgets/list_skeleton.dart';
+import '../applications/apply_queue_screen.dart';
 
 class SavedJobsScreen extends StatefulWidget {
   const SavedJobsScreen({super.key});
@@ -76,14 +78,29 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.page,
       appBar: AppBar(
         title: const Text('Gespeicherte Jobs'),
         backgroundColor: AppColors.surface,
         elevation: 0,
       ),
+      floatingActionButton: _isLoading
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () async {
+                final list = _savedJobs.isNotEmpty ? _savedJobs : await _firestoreService.getSavedJobs();
+                if (!mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ApplyQueueScreen(initialJobs: list),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.playlist_add_check),
+              label: const Text('Apply'),
+            ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ListSkeleton()
           : StreamBuilder<List<JobModel>>(
               stream: _savedStream,
               builder: (context, snapshot) {

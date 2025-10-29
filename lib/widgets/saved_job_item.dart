@@ -25,20 +25,7 @@ class SavedJobItem extends StatelessWidget {
             // Header
             Row(
               children: [
-                // Company logo placeholder
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.grey100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.business,
-                    color: AppColors.grey400,
-                    size: 20,
-                  ),
-                ),
+                _companyLogo(job),
                 
                 const SizedBox(width: 12),
                 
@@ -78,51 +65,22 @@ class SavedJobItem extends StatelessWidget {
             
             const SizedBox(height: 12),
             
-            // Job details
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 16,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  job.location,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                
-                if (job.salary != null) ...[
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.euro_outlined,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    job.salary!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            // Job details (meta rows)
+            _meta(Icons.place_outlined, job.location.split(',').first.trim()),
+            if ((job.salary ?? '').isNotEmpty) _meta(Icons.payments_outlined, job.salary!),
             
             // Tags
-            if (job.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: job.tags.map((tag) => _buildTag(tag)).toList(),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if ((job.workType.toLowerCase().contains('remote')) || ((job.remotePercentage ?? '').toString().isNotEmpty)) _pill('Remote'),
+                if (job.jobType.isNotEmpty) _pill(job.jobType),
+                if ((job.experienceLevel ?? '').isNotEmpty) _pill(job.experienceLevel!),
+                ...job.tags.take(2).map((t) => _pill(t)),
+              ],
+            ),
             
             const SizedBox(height: 12),
             
@@ -171,44 +129,51 @@ class SavedJobItem extends StatelessWidget {
     );
   }
 
-  Widget _buildTag(String tag) {
-    Color tagColor;
-    Color textColor;
-    
-    switch (tag.toLowerCase()) {
-      case 'remote':
-        tagColor = AppColors.remoteTag;
-        textColor = Colors.white;
-        break;
-      case 'praktikum':
-      case 'internship':
-        tagColor = AppColors.internshipTag;
-        textColor = Colors.white;
-        break;
-      case 'vollzeit':
-      case 'fulltime':
-        tagColor = AppColors.fulltimeTag;
-        textColor = Colors.white;
-        break;
-      default:
-        tagColor = AppColors.grey200;
-        textColor = AppColors.textSecondary;
-    }
-    
+  Widget _pill(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: const ShapeDecoration(
+        color: Colors.white,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+    );
+  }
+
+  Widget _meta(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(children: [
+        Icon(icon, size: 16, color: AppColors.ink400),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text, style: const TextStyle(color: AppColors.ink500), overflow: TextOverflow.ellipsis)),
+      ]),
+    );
+  }
+
+  Widget _companyLogo(JobModel job) {
+    final name = job.company.trim();
+    final initials = name.isEmpty ? '•' : name.split(' ').map((w)=>w.isNotEmpty?w[0].toUpperCase():'').take(2).join('');
+    final logo = job.companyLogo;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: (logo != null && logo.isNotEmpty)
+          ? Image.network(logo, width: 40, height: 40, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initialsBox(initials))
+          : _initialsBox(initials),
+    );
+  }
+
+  Widget _initialsBox(String initials) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tagColor,
+        color: const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        tag,
-        style: TextStyle(
-          fontSize: 10,
-          color: textColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      child: Text(initials, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
     );
   }
 

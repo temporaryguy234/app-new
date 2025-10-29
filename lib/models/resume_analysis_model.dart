@@ -62,15 +62,33 @@ class ResumeAnalysisModel {
   }
 
   factory ResumeAnalysisModel.fromMap(Map<String, dynamic> map) {
+    // Robust conversion for potentially inconsistent JSON / Firestore shapes
+    double _asDouble(dynamic v, double fallback) {
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? fallback;
+      return fallback;
+    }
+    int _asInt(dynamic v, int fallback) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+    DateTime _asDate(dynamic v) {
+      if (v is Timestamp) return v.toDate();
+      if (v is DateTime) return v;
+      if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+      return DateTime.now();
+    }
+
     return ResumeAnalysisModel(
       id: map['id'] as String,
       userId: map['userId'] as String,
       resumeUrl: map['resumeUrl'] as String,
-      score: (map['score'] as num).toDouble(),
+      score: _asDouble(map['score'], 50.0),
       strengths: List<String>.from(map['strengths'] ?? []),
       improvements: List<String>.from(map['improvements'] ?? []),
       skills: List<String>.from(map['skills'] ?? []),
-      yearsOfExperience: map['yearsOfExperience'] as int,
+      yearsOfExperience: _asInt(map['yearsOfExperience'], 0),
       experienceLevel: map['experienceLevel'] as String,
       industries: List<String>.from(map['industries'] ?? []),
       summary: map['summary'] as String,
@@ -78,8 +96,8 @@ class ResumeAnalysisModel {
       postalCode: map['postalCode'] as String? ?? '',
       profilePictureUrl: map['profilePictureUrl'] as String?,
       name: map['name'] as String?,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: _asDate(map['createdAt']),
+      updatedAt: _asDate(map['updatedAt']),
     );
   }
 

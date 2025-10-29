@@ -50,37 +50,65 @@ class _JobCardState extends State<JobCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _companyAvatar(job),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
+                    // Gradient header block with logo, title, company, meta rows and pills
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.blueSurface,
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                job.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                              ),
-                              if ((job.company ?? '').isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    job.company!,
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                                  ),
+                              _companyAvatar(job),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      job.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                    ),
+                                    if ((job.company ?? '').isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          job.company!,
+                                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                        ),
+                                      ),
+                                  ],
                                 ),
+                              ),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          if ((job.location ?? '').isNotEmpty)
+                            _meta(Icons.place_outlined, job.location!.split(',').first.trim()),
+                          if ((job.salary ?? '').isNotEmpty)
+                            _meta(Icons.payments_outlined, job.salary!),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if ((job.workType ?? '').toLowerCase().contains('remote') ||
+                                  ((job.remotePercentage ?? '').toString().isNotEmpty))
+                                _pill('Remote'),
+                              if (job.jobType.isNotEmpty) _pill(job.jobType),
+                              if ((job.experienceLevel ?? '').isNotEmpty) _pill(job.experienceLevel!),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    _keyFactsLine(job),
-                    const SizedBox(height: 10),
                     _sectionTitle('Kurzprofil'),
                     const SizedBox(height: 6),
                     Text(
@@ -90,7 +118,7 @@ class _JobCardState extends State<JobCard> {
                     const SizedBox(height: 14),
 
                     ...(() {
-                      final req = job.requirements.isNotEmpty ? job.requirements : _compactFromParagraph(job.description);
+                      final req = job.requirements.isNotEmpty ? job.requirements : _compactFromParagraphOffset(job.description, 0);
                       if (req.isEmpty) return <Widget>[];
                       return [
                         _sectionTitle('Was du können musst'),
@@ -101,7 +129,12 @@ class _JobCardState extends State<JobCard> {
                     })(),
 
                     ...(() {
-                      final resp = job.responsibilities.isNotEmpty ? job.responsibilities : _compactFromParagraph(job.description);
+                      List<String> resp = job.responsibilities.isNotEmpty ? job.responsibilities : _compactFromParagraphOffset(job.description, 1);
+                      // De-duplicate if fallback produced similar lists
+                      if (job.responsibilities.isEmpty && job.requirements.isEmpty) {
+                        final reqSet = _compactFromParagraphOffset(job.description, 0).toSet();
+                        resp = resp.where((e) => !reqSet.contains(e)).toList();
+                      }
                       if (resp.isEmpty) return <Widget>[];
                       return [
                         _sectionTitle('Was dich erwartet'),
@@ -243,11 +276,12 @@ class _JobCardState extends State<JobCard> {
     final companyName = job.company ?? 'Company';
     final initials = companyName.split(' ').map((word) => word.isNotEmpty ? word[0].toUpperCase() : '').take(2).join('');
 
-    if (job.companyLogo != null && job.companyLogo!.isNotEmpty) {
+    final derived = _deriveLogoFromUrl(job.applicationUrl);
+    if ((job.companyLogo != null && job.companyLogo!.isNotEmpty) || (derived != null)) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          job.companyLogo!,
+          (job.companyLogo != null && job.companyLogo!.isNotEmpty) ? job.companyLogo! : derived!,
           width: 48,
           height: 48,
           fit: BoxFit.cover,
@@ -280,6 +314,20 @@ class _JobCardState extends State<JobCard> {
     );
   }
 
+  String? _deriveLogoFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://logo.clearbit.com/$host';
+  }
+
   Widget _keyFactsLine(JobModel job) {
     final facts = <String>[];
     
@@ -307,6 +355,39 @@ class _JobCardState extends State<JobCard> {
         fontSize: 16,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _pill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: const ShapeDecoration(
+        color: Colors.white,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700),
+      ),
+    );
+  }
+
+  Widget _meta(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.ink400),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: AppColors.ink500),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -359,6 +440,26 @@ class _JobCardState extends State<JobCard> {
     if (bullets.length >= 3) return bullets.map((s) => s.trim()).take(maxBullets).toList();
     final sent = RegExp(r'[^.!?]{8,140}[.!?]').allMatches(p).map((m) => m.group(0)!.trim()).toList();
     return sent.take(maxBullets).toList();
+  }
+
+  List<String> _compactFromParagraphOffset(String? paragraph, int offset, {int maxBullets = 4}) {
+    final p = (paragraph ?? '').replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+    if (p.isEmpty) return [];
+    final sentences = RegExp(r'[^.!?]{8,140}[.!?]').allMatches(p).map((m) => m.group(0)!.trim()).toList();
+    if (sentences.isEmpty) return _compactFromParagraph(paragraph, maxBullets: maxBullets);
+    final picked = <String>[];
+    for (int i = offset; i < sentences.length && picked.length < maxBullets; i += 2) {
+      picked.add(_truncateNicely(sentences[i], 120));
+    }
+    return picked;
+  }
+
+  String _truncateNicely(String text, int max) {
+    if (text.length <= max) return text;
+    final cut = text.substring(0, max);
+    final idx = cut.lastIndexOf(' ');
+    final base = idx > 60 ? cut.substring(0, idx) : cut;
+    return base.trimRight() + '…';
   }
 
   List<Widget> _bulletList(List<String> items, {int max = 4}) {

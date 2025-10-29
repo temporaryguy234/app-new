@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/colors.dart';
+import '../../widgets/list_skeleton.dart';
 import '../../models/application_model.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/application_item.dart';
@@ -110,7 +111,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.page,
       appBar: AppBar(
         title: const Text('Meine Bewerbungen'),
         backgroundColor: AppColors.surface,
@@ -137,9 +138,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const ListSkeleton()
           : _filteredApplications.isEmpty
               ? Center(
                   child: Column(

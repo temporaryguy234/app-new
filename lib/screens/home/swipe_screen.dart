@@ -48,6 +48,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
     _loadJobs();
   }
 
+  @override
+  void dispose() {
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _refreshPremiumState() async {
     final canSwipe = await _premium.canSwipe();
     final isPrem = await _premium.isPremium();
@@ -417,7 +423,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.page,
       appBar: AppBar(
         title: const Text('Linku'),
         actions: [
@@ -439,63 +445,35 @@ class _SwipeScreenState extends State<SwipeScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : _jobs.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.work_outline,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
+                      Icon(Icons.work_outline, size: 64, color: AppColors.textSecondary),
                       const SizedBox(height: 16),
-                      Text(
-                        'Noch keine passenden Jobs',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                      Text('Noch keine passenden Jobs', style: TextStyle(fontSize: 18, color: AppColors.textSecondary)),
                       const SizedBox(height: 8),
-                      Text(
-                        'Filter prüfen oder Standort (PLZ/Stadt) anpassen',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
+                      Text('Filter prüfen oder Standort (PLZ/Stadt) anpassen', style: TextStyle(color: AppColors.textTertiary)),
                       const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _loadJobs,
-                        child: const Text('Erneut suchen'),
-                      ),
+                      ElevatedButton(onPressed: _loadJobs, child: const Text('Erneut suchen')),
                     ],
                   ),
                 )
               : Column(
                   children: [
-                    // Optional undo button only
                     if (_rejectedJobs.isNotEmpty || _savedJobs.isNotEmpty)
                       Align(
                         alignment: Alignment.centerRight,
-                        child: IconButton(
-                              icon: const Icon(Icons.undo),
-                              onPressed: _undoLastAction,
-                              tooltip: 'Rückgängig',
+                        child: IconButton(icon: const Icon(Icons.undo), onPressed: _undoLastAction, tooltip: 'Rückgängig'),
                       ),
-                    ),
-                    
-                    // Swipe cards - full screen (no action buttons)
                     Expanded(
                       child: CardSwiper(
                         controller: _swiperController,
                         cardsCount: _jobs.length,
                         isLoop: false,
                         isDisabled: _swipeDisabled,
-                        // Kein vertical swipe: wir verhindern das bereits in JobCard (GestureDetector)
                         padding: EdgeInsets.zero,
                         onSwipe: _onSwipe,
                         cardBuilder: (context, index) {

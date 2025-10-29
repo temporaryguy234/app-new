@@ -11,6 +11,11 @@ class FilterModel {
   final List<String>? technologies;
   final List<String>? companySizes;
   final List<String>? benefits;
+  // New advanced filters
+  final int? publishedWithinDays; // 1,3,7,14; null = any
+  final List<String>? workSchedules; // Vollzeit, Teilzeit, Schicht
+  final List<String>? languages; // Deutsch, Englisch
+  final bool? onlyWithSalary; // nur Angebote mit Gehaltsangabe
 
   FilterModel({
     this.location,
@@ -25,6 +30,10 @@ class FilterModel {
     this.technologies,
     this.companySizes,
     this.benefits,
+    this.publishedWithinDays,
+    this.workSchedules,
+    this.languages,
+    this.onlyWithSalary,
   });
 
   factory FilterModel.fromMap(Map<String, dynamic> map) {
@@ -41,6 +50,10 @@ class FilterModel {
       technologies: map['technologies'] != null ? List<String>.from(map['technologies']) : null,
       companySizes: map['companySizes'] != null ? List<String>.from(map['companySizes']) : null,
       benefits: map['benefits'] != null ? List<String>.from(map['benefits']) : null,
+      publishedWithinDays: map['publishedWithinDays'],
+      workSchedules: map['workSchedules'] != null ? List<String>.from(map['workSchedules']) : null,
+      languages: map['languages'] != null ? List<String>.from(map['languages']) : null,
+      onlyWithSalary: map['onlyWithSalary'],
     );
   }
 
@@ -58,6 +71,10 @@ class FilterModel {
       'technologies': technologies,
       'companySizes': companySizes,
       'benefits': benefits,
+      'publishedWithinDays': publishedWithinDays,
+      'workSchedules': workSchedules,
+      'languages': languages,
+      'onlyWithSalary': onlyWithSalary,
     };
   }
 
@@ -74,6 +91,10 @@ class FilterModel {
     List<String>? technologies,
     List<String>? companySizes,
     List<String>? benefits,
+    int? publishedWithinDays,
+    List<String>? workSchedules,
+    List<String>? languages,
+    bool? onlyWithSalary,
   }) {
     return FilterModel(
       location: location ?? this.location,
@@ -88,6 +109,10 @@ class FilterModel {
       technologies: technologies ?? this.technologies,
       companySizes: companySizes ?? this.companySizes,
       benefits: benefits ?? this.benefits,
+      publishedWithinDays: publishedWithinDays ?? this.publishedWithinDays,
+      workSchedules: workSchedules ?? this.workSchedules,
+      languages: languages ?? this.languages,
+      onlyWithSalary: onlyWithSalary ?? this.onlyWithSalary,
     );
   }
 
@@ -103,7 +128,11 @@ class FilterModel {
         contractTypes.isNotEmpty ||
         (technologies?.isNotEmpty ?? false) ||
         (companySizes?.isNotEmpty ?? false) ||
-        (benefits?.isNotEmpty ?? false);
+        (benefits?.isNotEmpty ?? false) ||
+        publishedWithinDays != null ||
+        (workSchedules?.isNotEmpty ?? false) ||
+        (languages?.isNotEmpty ?? false) ||
+        (onlyWithSalary == true);
   }
 
   int get activeFilterCount {
@@ -119,6 +148,10 @@ class FilterModel {
     if (technologies?.isNotEmpty ?? false) count++;
     if (companySizes?.isNotEmpty ?? false) count++;
     if (benefits?.isNotEmpty ?? false) count++;
+    if (publishedWithinDays != null) count++;
+    if (workSchedules?.isNotEmpty ?? false) count++;
+    if (languages?.isNotEmpty ?? false) count++;
+    if (onlyWithSalary == true) count++;
     return count;
   }
 }

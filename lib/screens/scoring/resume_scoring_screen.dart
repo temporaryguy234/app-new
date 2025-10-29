@@ -1,452 +1,274 @@
 import 'package:flutter/material.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
-import '../../services/resume_service.dart';
 import '../main/main_screen.dart';
 
 class ResumeScoringScreen extends StatelessWidget {
   final ResumeAnalysisModel analysis;
-
-  const ResumeScoringScreen({
-    super.key,
-    required this.analysis,
-  });
+  const ResumeScoringScreen({super.key, required this.analysis});
 
   @override
   Widget build(BuildContext context) {
+    final city = analysis.location.split(',').first.trim();
     return Scaffold(
+      backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: const Text('Lebenslauf-Analyse'),
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
+        title: const Text('Analyse'),
+        backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
+      ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Gradient header with score ring and quick pills
+          Container(
+            decoration: const BoxDecoration(gradient: AppColors.blueSurface),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Row(
+              children: [
+                _ScoreRing(score: analysis.score),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        analysis.name?.trim().isNotEmpty == true ? analysis.name! : 'Dein Profil',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          _Pill(icon: Icons.place_outlined, label: city.isEmpty ? 'Unbekannt' : city),
+                          const SizedBox(width: 8),
+                          _Pill(icon: Icons.trending_up, label: analysis.experienceText),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (analysis.topSkills.isNotEmpty)
+                            ...analysis.topSkills.take(3).map((s) => _ChipPill(label: s)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+
+          const SizedBox(height: 16),
+
+          _SectionCard(
+            title: 'Zusammenfassung',
+            child: Text(
+              analysis.summary,
+              style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            ),
+          ),
+          _SectionGap(),
+
+          if (analysis.skills.isNotEmpty)
+            _SectionCard(
+              title: 'Top‑Fähigkeiten',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: analysis.skills.map((s) => _ChipPill(label: s)).toList(),
+              ),
+            ),
+          if (analysis.skills.isNotEmpty) _SectionGap(),
+
+          if (analysis.strengths.isNotEmpty)
+            _SectionCard(
+              title: 'Stärken',
+              child: Column(
+                children: analysis.strengths.map((t) => _Bullet(text: t)).toList(),
+              ),
+            ),
+          if (analysis.strengths.isNotEmpty) _SectionGap(),
+
+          if (analysis.improvements.isNotEmpty)
+            _SectionCard(
+              title: 'Verbesserungen',
+              child: Column(
+                children: analysis.improvements.map((t) => _Bullet(text: t)).toList(),
+              ),
+            ),
+          if (analysis.improvements.isNotEmpty) _SectionGap(),
+
+          _SectionCard(
+            title: 'Empfehlungen',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                _Bullet(text: 'Öffne Filter und setze bevorzugte Stadt & Remote‑Modus'),
+                _Bullet(text: 'Bewirb dich mit verbessertem CV (Profil → CV exportieren)'),
+                _Bullet(text: 'Speichere passende Jobs, um bessere Vorschläge zu erhalten'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _ActionButtons(),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
-      backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Score Card
-            _buildScoreCard(),
-            const SizedBox(height: 24),
-            
-            // Summary
-            _buildSummaryCard(),
-            const SizedBox(height: 24),
-            
-            // Strengths
-            _buildStrengthsCard(),
-            const SizedBox(height: 24),
-            
-            // Improvements
-            _buildImprovementsCard(),
-            const SizedBox(height: 24),
-            
-            // Skills
-            _buildSkillsCard(),
-            const SizedBox(height: 24),
-            
-            // Experience
-            _buildExperienceCard(),
-            const SizedBox(height: 24),
-            
-            // Industries
-            _buildIndustriesCard(),
-            const SizedBox(height: 24),
-            
-            // Action Buttons
-            _buildActionButtons(context),
-          ],
-        ),
-      ),
     );
   }
+}
 
-  Widget _buildScoreCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              AppColors.primary,
-              AppColors.primary.withOpacity(0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          children: [
-            const Text(
-              'Dein Lebenslauf-Score',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${analysis.score.toInt()}/100',
-              style: const TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: AppColors.onPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              analysis.scoreText,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: AppColors.onPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: analysis.score / 100,
-              backgroundColor: AppColors.onPrimary.withOpacity(0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.onPrimary),
-              minHeight: 8,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Zusammenfassung',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              analysis.summary,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStrengthsCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Deine Stärken',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...analysis.strengths.map((strength) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: AppColors.success,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      strength,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImprovementsCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Verbesserungsvorschläge',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...analysis.improvements.map((improvement) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.lightbulb_outline,
-                    color: AppColors.warning,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      improvement,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSkillsCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Deine Fähigkeiten',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: analysis.skills.map((skill) => Chip(
-                label: Text(skill),
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                labelStyle: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              )).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExperienceCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Berufserfahrung',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.work_outline,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${analysis.yearsOfExperience} Jahre Erfahrung',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.trending_up,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Level: ${analysis.experienceText}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIndustriesCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Passende Branchen',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: analysis.industries.map((industry) => Chip(
-                label: Text(industry),
-                backgroundColor: AppColors.info.withOpacity(0.1),
-                labelStyle: const TextStyle(
-                  color: AppColors.info,
-                  fontWeight: FontWeight.w500,
-                ),
-              )).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
+class _ActionButtons extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
           child: OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Schließen',
-              style: TextStyle(fontSize: 16),
-            ),
+            child: const Text('Schließen'),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton(
-            onPressed: () async {
-              // Dezenter Loader
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                barrierColor: Colors.black26,
-                builder: (_) => const Center(child: CircularProgressIndicator()),
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainScreen(initialTabIndex: 0)),
+                (_) => false,
               );
-              
-              try {
-                // Optionales Prewarm, kein await -> Navigation bleibt schnell
-                // unawaited(ResumeService().findJobsForAnalysis(analysis));
-                
-                if (context.mounted) {
-                  Navigator.of(context).pop(); // Loader schließen
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainScreen(initialTabIndex: 0)),
-                    (_) => false,
-                  );
-                }
-              } catch (_) {
-                if (context.mounted) Navigator.of(context).pop();
-              }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Passende Jobs finden',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('Passende Jobs finden'),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ScoreRing extends StatelessWidget {
+  final double score;
+  const _ScoreRing({required this.score});
+  @override
+  Widget build(BuildContext context) {
+    final v = (score.clamp(0, 100)) / 100.0;
+    final color = score >= 80 ? AppColors.success : (score >= 60 ? AppColors.warning : AppColors.error);
+    return SizedBox(
+      width: 76,
+      height: 76,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 76,
+            height: 76,
+            child: CircularProgressIndicator(
+              value: v,
+              strokeWidth: 8,
+              backgroundColor: Colors.white,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+          Text('${score.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _Pill({required this.icon, required this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: ShapeDecoration(
+        color: Colors.white,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.ink500),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipPill extends StatelessWidget {
+  final String label;
+  const _ChipPill({required this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: ShapeDecoration(
+        color: const Color(0xFFF1F5F9),
+        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _SectionCard({required this.title, required this.child});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            child,
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionGap extends StatelessWidget {
+  const _SectionGap();
+  @override
+  Widget build(BuildContext context) => const SizedBox(height: 12);
+}
+
+class _Bullet extends StatelessWidget {
+  final String text;
+  const _Bullet({required this.text});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('•  ', style: TextStyle(color: AppColors.textSecondary)),
+        Expanded(child: Text(text, style: const TextStyle(color: AppColors.textSecondary))),
+      ]),
     );
   }
 }
