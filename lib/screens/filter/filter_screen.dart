@@ -241,15 +241,12 @@ class _FilterScreenState extends State<FilterScreen> {
                 children: [
                   RawAutocomplete<String>(
                     optionsBuilder: (TextEditingValue textEditingValue) {
-                      final q = textEditingValue.text.trim().toLowerCase();
-                      if (q.isEmpty) return const Iterable<String>.empty();
-                      // einfache Vorschläge inkl. Umlaute
                       final cities = [
                         'Berlin', 'München', 'Köln', 'Düsseldorf', 'Frankfurt', 'Hamburg', 'Stuttgart', 'Leipzig',
                         'Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck',
                         'Zürich', 'Genf', 'Basel', 'Bern', 'Lausanne',
                       ];
-                      return cities.where((c) => c.toLowerCase().startsWith(q)).take(8);
+                      return LocationService.suggestCities(textEditingValue.text, cities);
                     },
                     onSelected: (String selection) {
                       setState(() {

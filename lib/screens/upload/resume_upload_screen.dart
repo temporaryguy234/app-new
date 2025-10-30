@@ -91,131 +91,80 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.page,
       appBar: AppBar(
         title: const Text('Lebenslauf hochladen'),
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             // Upload area
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.upload_file,
-                      size: 60,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  const Text(
-                    'Lebenslauf hochladen',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  Text(
-                    'Lade deinen Lebenslauf als PDF oder Word-Dokument hoch',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Upload button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _isUploading || _isAnalyzing ? null : _uploadResume,
-                      icon: _isUploading || _isAnalyzing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.upload),
-                      label: Text(_isUploading || _isAnalyzing ? 'Verarbeitung...' : 'Datei auswählen'),
-                    ),
-                  ),
-                  
-                  if (_uploadStatus != null) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _uploadStatus!.contains('fehlgeschlagen')
-                            ? AppColors.error.withOpacity(0.1)
-                            : AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _uploadStatus!.contains('fehlgeschlagen')
-                              ? AppColors.error
-                              : AppColors.success,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _uploadStatus!.contains('fehlgeschlagen')
-                                ? Icons.error_outline
-                                : Icons.check_circle_outline,
-                            color: _uploadStatus!.contains('fehlgeschlagen')
-                                ? AppColors.error
-                                : AppColors.success,
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: const BoxDecoration(
+                            gradient: AppColors.blueSurface,
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _uploadStatus!,
-                              style: TextStyle(
-                                color: _uploadStatus!.contains('fehlgeschlagen')
-                                    ? AppColors.error
-                                    : AppColors.success,
-                              ),
+                          child: const Icon(Icons.upload_file, size: 60, color: AppColors.primary),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Lebenslauf hochladen', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                        const SizedBox(height: 8),
+                        const Text('Lade deinen Lebenslauf als PDF oder Word‑Dokument hoch', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _isUploading || _isAnalyzing ? null : _uploadResume,
+                            icon: _isUploading || _isAnalyzing
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
+                                : const Icon(Icons.upload),
+                            label: Text(_isUploading || _isAnalyzing ? 'Verarbeitung...' : 'Datei auswählen'),
+                          ),
+                        ),
+                        if (_uploadStatus != null) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _uploadStatus!.contains('fehlgeschlagen') ? AppColors.error.withOpacity(0.08) : AppColors.success.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _uploadStatus!.contains('fehlgeschlagen') ? AppColors.error : AppColors.success),
                             ),
+                            child: Row(children: [
+                              Icon(_uploadStatus!.contains('fehlgeschlagen') ? Icons.error_outline : Icons.check_circle_outline,
+                                  color: _uploadStatus!.contains('fehlgeschlagen') ? AppColors.error : AppColors.success),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_uploadStatus!, style: TextStyle(color: _uploadStatus!.contains('fehlgeschlagen') ? AppColors.error : AppColors.success))),
+                            ]),
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ],
+                  ),
+                ),
               ),
             ),
             
             // Info section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.grey50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -251,6 +200,7 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ],
         ),

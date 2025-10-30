@@ -31,96 +31,78 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.page,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 60),
-                
-                // Logo/Title
-                const Text(
-                  'Linku',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                // Gradient Header with brand
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.blueSurface,
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Linku', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                      SizedBox(height: 6),
+                      Text('Deine Job‑Matching App', style: TextStyle(color: AppColors.textSecondary)),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Deine Job-Matching App',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 60),
-                
-                // Google Login Button
-                _buildLoginButton(
-                  text: 'Mit Google anmelden',
-                  icon: Icons.login,
-                  onPressed: _signInWithGoogle,
-                  color: Colors.red,
-                ),
-                
                 const SizedBox(height: 16),
-                
-                // Facebook Login Button
-                _buildLoginButton(
-                  text: 'Mit Facebook anmelden',
-                  icon: Icons.facebook,
-                  onPressed: _signInWithFacebook,
-                  color: const Color(0xFF1877F2),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Apple Login Button (iOS only, vorbereitet)
-                if (Theme.of(context).platform == TargetPlatform.iOS)
-                  _buildLoginButton(
-                    text: 'Mit Apple anmelden',
-                    icon: Icons.apple,
-                    onPressed: _signInWithApple,
-                    color: Colors.black,
-                  ),
-                
-                if (Theme.of(context).platform == TargetPlatform.iOS)
-                  const SizedBox(height: 16),
-                
-                // Divider
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('oder'),
+
+                // Card with social buttons and email form
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildLoginButton(
+                          text: 'Mit Google anmelden',
+                          icon: Icons.login,
+                          onPressed: _signInWithGoogle,
+                          color: const Color(0xFFDB4437),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildLoginButton(
+                          text: 'Mit Facebook anmelden',
+                          icon: Icons.facebook,
+                          onPressed: _signInWithFacebook,
+                          color: const Color(0xFF1877F2),
+                        ),
+                        if (Theme.of(context).platform == TargetPlatform.iOS) ...[
+                          const SizedBox(height: 12),
+                          _buildLoginButton(
+                            text: 'Mit Apple anmelden',
+                            icon: Icons.apple,
+                            onPressed: _signInWithApple,
+                            color: Colors.black,
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        Row(children: const [
+                          Expanded(child: Divider()),
+                          Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('oder')),
+                          Expanded(child: Divider()),
+                        ]),
+                        const SizedBox(height: 14),
+                        _buildEmailPasswordSection(),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() { _isRegisterMode = !_isRegisterMode; });
+                          },
+                          child: Text(
+                            _isRegisterMode ? 'Bereits ein Konto? Anmelden' : 'Noch kein Konto? Registrieren',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
                     ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Email/Password Section
-                _buildEmailPasswordSection(),
-                
-                const SizedBox(height: 24),
-                
-                // Toggle Register/Login
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _isRegisterMode = !_isRegisterMode;
-                    });
-                  },
-                  child: Text(
-                    _isRegisterMode 
-                        ? 'Bereits ein Konto? Anmelden'
-                        : 'Noch kein Konto? Registrieren',
-                    style: const TextStyle(color: AppColors.primary),
                   ),
                 ),
               ],
