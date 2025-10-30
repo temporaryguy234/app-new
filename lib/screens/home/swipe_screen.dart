@@ -420,6 +420,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
     );
   }
 
+  // Using shared FilterChipPill primitive for chip rows
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -433,13 +435,13 @@ class _SwipeScreenState extends State<SwipeScreen> {
             onPressed: _openFilterSheet,
           ),
           IconButton(
-            icon: _isLoading 
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh),
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
             onPressed: _handleRefresh,
           ),
         ],
@@ -468,6 +470,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         alignment: Alignment.centerRight,
                         child: IconButton(icon: const Icon(Icons.undo), onPressed: _undoLastAction, tooltip: 'Rückgängig'),
                       ),
+                  // No horizontal filter controls per request
                     Expanded(
                       child: CardSwiper(
                         controller: _swiperController,

@@ -4,6 +4,7 @@ import '../../models/job_model.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/saved_job_item.dart';
 import '../../widgets/list_skeleton.dart';
+import '../../widgets/primitives/empty_state.dart';
 import '../applications/apply_queue_screen.dart';
 
 class SavedJobsScreen extends StatefulWidget {
@@ -106,28 +107,10 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
               builder: (context, snapshot) {
                 final list = snapshot.data ?? _savedJobs;
                 if (list.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.bookmark_outline,
-                          size: 64,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Noch keine gespeicherten Jobs',
-                          style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Swipe Jobs nach rechts um sie zu speichern',
-                          style: TextStyle(color: AppColors.textTertiary),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                  return const EmptyState(
+                    icon: Icons.bookmark_outline,
+                    title: 'Noch keine gespeicherten Jobs',
+                    subtitle: 'Swipe Jobs nach rechts um sie zu speichern',
                   );
                 }
                 return ListView.builder(

@@ -47,10 +47,10 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         type: BottomNavigationBarType.fixed,
-        showSelectedLabels: false,
+        showSelectedLabels: true,
         showUnselectedLabels: false,
-        selectedIconTheme: const IconThemeData(size: 34),
-        unselectedIconTheme: const IconThemeData(size: 30),
+        selectedIconTheme: const IconThemeData(size: 28),
+        unselectedIconTheme: const IconThemeData(size: 24),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
