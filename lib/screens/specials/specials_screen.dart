@@ -619,7 +619,7 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
 
   // Small company avatar/logo helper
   Widget _companyLogoChip(JobModel job, {double size = 24}) {
-    final logo = job.companyLogo;
+    final logo = job.companyLogo?.isNotEmpty == true ? job.companyLogo : _deriveLogoFromUrl(job.applicationUrl);
     final company = job.company.trim();
     final initials = company.isNotEmpty
         ? company.split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').take(2).join('')
@@ -638,6 +638,20 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
       );
     }
     return _initialsBox(initials, size);
+  }
+
+  String? _deriveLogoFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://logo.clearbit.com/$host';
   }
 
   Widget _initialsBox(String initials, double size) {

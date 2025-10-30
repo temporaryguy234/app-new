@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../config/colors.dart';
 import '../../models/resume_analysis_model.dart';
 import '../main/main_screen.dart';
+import '../../widgets/primitives/section_header.dart';
+import '../../widgets/primitives/tag_pill.dart';
 
 class ResumeScoringScreen extends StatelessWidget {
   final ResumeAnalysisModel analysis;
@@ -34,7 +36,7 @@ class ResumeScoringScreen extends StatelessWidget {
                     children: [
                       Text(
                         analysis.name?.trim().isNotEmpty == true ? analysis.name! : 'Dein Profil',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -45,14 +47,12 @@ class ResumeScoringScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (analysis.topSkills.isNotEmpty)
-                            ...analysis.topSkills.take(3).map((s) => _ChipPill(label: s)),
-                        ],
-                      ),
+                      if (analysis.topSkills.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: analysis.topSkills.take(3).map((s) => TagPill(s)).toList(),
+                        ),
                     ],
                   ),
                 ),
@@ -66,7 +66,7 @@ class ResumeScoringScreen extends StatelessWidget {
             title: 'Zusammenfassung',
             child: Text(
               analysis.summary,
-              style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+              style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
             ),
           ),
           _SectionGap(),
@@ -77,7 +77,7 @@ class ResumeScoringScreen extends StatelessWidget {
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: analysis.skills.map((s) => _ChipPill(label: s)).toList(),
+                children: analysis.skills.map((s) => TagPill(s)).toList(),
               ),
             ),
           if (analysis.skills.isNotEmpty) _SectionGap(),
@@ -105,9 +105,9 @@ class ResumeScoringScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                _Bullet(text: 'Öffne Filter und setze bevorzugte Stadt & Remote‑Modus'),
-                _Bullet(text: 'Bewirb dich mit verbessertem CV (Profil → CV exportieren)'),
-                _Bullet(text: 'Speichere passende Jobs, um bessere Vorschläge zu erhalten'),
+                _Bullet(text: 'Filter öffnen und Stadt/Remote‑Modus setzen'),
+                _Bullet(text: 'Mit verbessertem CV bewerben (Profil → CV exportieren)'),
+                _Bullet(text: 'Jobs speichern, um Vorschläge zu verfeinern'),
               ],
             ),
           ),
@@ -214,21 +214,7 @@ class _Pill extends StatelessWidget {
   }
 }
 
-class _ChipPill extends StatelessWidget {
-  final String label;
-  const _ChipPill({required this.label});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: ShapeDecoration(
-        color: const Color(0xFFF1F5F9),
-        shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
-    );
-  }
-}
+// TagPill is used for simple chips; keep _Pill for icon+label cases
 
 class _SectionCard extends StatelessWidget {
   final String title;
@@ -242,7 +228,7 @@ class _SectionCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            SectionHeader(title),
             const SizedBox(height: 10),
             child,
           ]),
