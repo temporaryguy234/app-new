@@ -8,6 +8,8 @@ import '../../services/auth_service.dart';
 import '../../models/job_model.dart';
 import '../../config/colors.dart';
 import '../../widgets/job_card.dart';
+import '../../widgets/primitives/app_search_bar_pill.dart';
+import '../../widgets/primitives/filter_chip_pill.dart';
 import '../../models/filter_model.dart';
 import '../../services/premium_service.dart';
 // import '../main/main_screen.dart';
@@ -420,71 +422,16 @@ class _SwipeScreenState extends State<SwipeScreen> {
     );
   }
 
-  Widget _chipButton({required IconData icon, required String label}) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: _openFilterSheet,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: const ShapeDecoration(
-            color: Colors.white,
-            shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: AppColors.ink500),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Using shared FilterChipPill primitive for chip rows
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: InkWell(
+        title: AppSearchBarPill(
+          placeholder: 'Search Job, Company & Role',
           onTap: _openFilterSheet,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(color: AppColors.ink200),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: const [
-                Icon(Icons.search, color: AppColors.ink400),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Search Job, Company & Role',
-                    style: TextStyle(color: AppColors.ink500, fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Icon(Icons.mic_none, color: AppColors.ink400),
-              ],
-            ),
-          ),
         ),
         actions: [
           IconButton(
@@ -530,10 +477,10 @@ class _SwipeScreenState extends State<SwipeScreen> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _chipButton(icon: Icons.sort_rounded, label: 'Sort'),
-                          _chipButton(icon: Icons.place_outlined, label: _locationCtrl.text.isEmpty ? 'Ort' : _locationCtrl.text.split(',').first),
-                          _chipButton(icon: Icons.laptop_mac_rounded, label: _remoteMode),
-                          _chipButton(icon: Icons.tune, label: 'Weitere'),
+                          FilterChipPill(icon: Icons.sort_rounded, label: 'Sort', onTap: _openFilterSheet),
+                          FilterChipPill(icon: Icons.place_outlined, label: _locationCtrl.text.isEmpty ? 'Ort' : _locationCtrl.text.split(',').first, onTap: _openFilterSheet),
+                          FilterChipPill(icon: Icons.laptop_mac_rounded, label: _remoteMode, onTap: _openFilterSheet),
+                          FilterChipPill(icon: Icons.tune, label: 'Weitere', onTap: _openFilterSheet),
                         ],
                       ),
                     ),

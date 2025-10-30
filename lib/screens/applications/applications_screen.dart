@@ -4,6 +4,8 @@ import '../../widgets/list_skeleton.dart';
 import '../../models/application_model.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/application_item.dart';
+import '../../widgets/primitives/filter_chip_pill.dart';
+import '../../widgets/primitives/empty_state.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -140,37 +142,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
       body: _isLoading
           ? const ListSkeleton()
           : _filteredApplications.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.work_outline,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _selectedStatus == null
-                            ? 'Noch keine Bewerbungen'
-                            : 'Keine Bewerbungen mit diesem Status',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _selectedStatus == null
-                            ? 'Bewerben Sie sich auf Jobs um den Status zu verfolgen'
-                            : 'Wählen Sie einen anderen Filter',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+              ? EmptyState(
+                  icon: Icons.work_outline,
+                  title: _selectedStatus == null ? 'Noch keine Bewerbungen' : 'Keine Bewerbungen mit diesem Status',
+                  subtitle: _selectedStatus == null
+                      ? 'Bewerben Sie sich auf Jobs um den Status zu verfolgen'
+                      : 'Wählen Sie einen anderen Filter',
                 )
               : Column(
                   children: [
@@ -178,18 +155,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                     if (_selectedStatus != null)
                       Container(
                         padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Chip(
-                              label: Text('Filter: ${_getStatusText(_selectedStatus!)}'),
-                              onDeleted: () {
-                                setState(() {
-                                  _selectedStatus = null;
-                                });
-                              },
-                            ),
-                          ],
+                      child: Row(children: [
+                        FilterChipPill(
+                          icon: Icons.filter_alt,
+                          label: 'Filter: ${_getStatusText(_selectedStatus!)}',
+                          onTap: () => setState(() => _selectedStatus = null),
                         ),
+                      ]),
                       ),
                     
                     // Applications list

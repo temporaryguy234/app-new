@@ -4,6 +4,8 @@ import '../../models/job_model.dart';
 import '../../services/premium_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/colors.dart';
+import '../../widgets/primitives/tag_pill.dart';
+import '../../widgets/primitives/section_header.dart';
 
 class SpecialJobDetailScreen extends StatelessWidget {
   final JobModel job;
@@ -121,10 +123,9 @@ class SpecialJobDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _lead(job),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                          ),
+                          const SectionHeader('Kurzprofil'),
+                          const SizedBox(height: 8),
+                          Text(_lead(job)),
                           const SizedBox(height: 10),
                           ..._summaryBullets(job).map((b) => Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,11 +237,7 @@ class SpecialJobDetailScreen extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: chips.map((c) => Chip(
-        label: Text(c),
-        backgroundColor: AppColors.grey100,
-        labelStyle: const TextStyle(fontSize: 12),
-      )).toList(),
+      children: chips.map((c) => TagPill(c, filled: false)).toList(),
     );
   }
 

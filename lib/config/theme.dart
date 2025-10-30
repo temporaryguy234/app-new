@@ -10,6 +10,7 @@ class AppTheme {
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: AppColors.page,
+      dividerTheme: const DividerThemeData(color: AppColors.ink200, thickness: 1, space: 1),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -27,6 +28,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
         ),
         margin: EdgeInsets.zero,
+      ),
+      chipTheme: const ChipThemeData(
+        backgroundColor: Colors.white,
+        side: BorderSide(color: AppColors.ink200),
+        selectedColor: AppColors.primary,
+        labelStyle: TextStyle(fontSize: 12, color: AppColors.ink700, fontWeight: FontWeight.w600),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        shape: StadiumBorder(),
+        showCheckmark: false,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -78,6 +88,12 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.error),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black.withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentTextStyle: const TextStyle(color: Colors.white),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
