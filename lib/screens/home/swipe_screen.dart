@@ -8,8 +8,6 @@ import '../../services/auth_service.dart';
 import '../../models/job_model.dart';
 import '../../config/colors.dart';
 import '../../widgets/job_card.dart';
-import '../../widgets/primitives/app_search_bar_pill.dart';
-import '../../widgets/primitives/filter_chip_pill.dart';
 import '../../models/filter_model.dart';
 import '../../services/premium_service.dart';
 // import '../main/main_screen.dart';
@@ -429,11 +427,13 @@ class _SwipeScreenState extends State<SwipeScreen> {
     return Scaffold(
       backgroundColor: AppColors.page,
       appBar: AppBar(
-        title: AppSearchBarPill(
-          placeholder: 'Search Job, Company & Role',
-          onTap: _openFilterSheet,
-        ),
+        title: const Text('Linku'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Filter',
+            onPressed: _openFilterSheet,
+          ),
           IconButton(
             icon: _isLoading
                 ? const SizedBox(
@@ -470,21 +470,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         alignment: Alignment.centerRight,
                         child: IconButton(icon: const Icon(Icons.undo), onPressed: _undoLastAction, tooltip: 'Rückgängig'),
                       ),
-                  // Top filter chips row (opens bottom sheet)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          FilterChipPill(icon: Icons.sort_rounded, label: 'Sort', onTap: _openFilterSheet),
-                          FilterChipPill(icon: Icons.place_outlined, label: _locationCtrl.text.isEmpty ? 'Ort' : _locationCtrl.text.split(',').first, onTap: _openFilterSheet),
-                          FilterChipPill(icon: Icons.laptop_mac_rounded, label: _remoteMode, onTap: _openFilterSheet),
-                          FilterChipPill(icon: Icons.tune, label: 'Weitere', onTap: _openFilterSheet),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // No horizontal filter controls per request
                     Expanded(
                       child: CardSwiper(
                         controller: _swiperController,
