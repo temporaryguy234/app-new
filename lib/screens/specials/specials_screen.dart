@@ -455,12 +455,9 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
     // 1) Deduplicate by company + normalized title (ignore location/url noise)
     final unique = _dedupeByKey(jobs);
 
-    // 2) Sort newest first if postedAt exists, otherwise stable
-    unique.sort((a, b) {
-      final ad = a.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bd = b.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bd.compareTo(ad);
-    });
+    // 2) Score jobs (salary/remote/recency/keywords) and sort by score desc
+    double score(JobModel j) => _scoreJobForSpecials(j);
+    unique.sort((a, b) => score(b).compareTo(score(a)));
 
     // 3) Helper to pick diverse set by company
     List<JobModel> pickDiverse(List<JobModel> list, int count) {
@@ -513,6 +510,31 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
 
     _teasers = teasers;
     _alsoLike = also.take(8).toList();
+  }
+
+  // Strong scoring towards the most attractive jobs for the hero cards
+  double _scoreJobForSpecials(JobModel j) {
+    double s = 0;
+    // Recency (max +20)
+    final dt = j.postedAt ?? DateTime.now();
+    final ageDays = DateTime.now().difference(dt).inDays.toDouble();
+    s += (20 - ageDays).clamp(0, 20);
+    // Salary (max +25)
+    if ((j.salary ?? '').isNotEmpty) {
+      s += 15;
+      if (RegExp(r'(€|eur|k|\d)', caseSensitive: false).hasMatch(j.salary!)) s += 10;
+    }
+    // Remote/Hybrid (max +15)
+    final wt = ('${j.workType} ${j.jobType} ${j.tags.join(' ')}').toLowerCase();
+    if (wt.contains('remote')) s += 15; else if (wt.contains('hybrid')) s += 8;
+    // Experience clarity (max +6)
+    if ((j.experienceLevel ?? '').isNotEmpty) s += 6;
+    // Benefits keywords that hook (max +12)
+    final benefits = j.benefits.join(' ').toLowerCase();
+    if (RegExp(r'(bonus|beteiligung|aktien|weiterbildung|mentor|4-?tage|unbefristet)', caseSensitive: false).hasMatch(benefits)) s += 12;
+    // Company size/industry present (+4)
+    if (j.companySize.isNotEmpty || j.industry.isNotEmpty) s += 4;
+    return s;
   }
 
   Widget _gridJobCard(JobModel job) {

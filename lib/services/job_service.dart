@@ -561,6 +561,30 @@ class JobService {
   /// Beispiele: "Berlin, Deutschland" -> "Berlin, Germany" | "12305 Berlin" -> "Berlin, Germany"
   Map<String, String> _normalizeSerpLocation(String? location) {
     final raw = (location ?? '').trim();
+    // Helper to canonicalize strings: lower-case, remove dots/extra spaces,
+    // fold German umlauts and common transliterations (ae->ä, oe->ö, ue->ü, ss->ß variants)
+    String canon(String s) {
+      var t = s.toLowerCase().replaceAll('.', '').replaceAll(RegExp(r'\s+'), ' ').trim();
+      // normalize special sequences to enable matching regardless of whether user typed umlauts
+      t = t
+          .replaceAll('ae', 'ä')
+          .replaceAll('oe', 'ö')
+          .replaceAll('ue', 'ü')
+          .replaceAll('ss', 'ß');
+      // also support reverse folding (when map keys contain ascii)
+      t = t
+          .replaceAll('á', 'a')
+          .replaceAll('à', 'a')
+          .replaceAll('ä', 'ä')
+          .replaceAll('ö', 'ö')
+          .replaceAll('ü', 'ü');
+      // unify saint/sankt abbreviations
+      t = t.replaceAll(RegExp(r'^st\s'), 'sankt ');
+      t = t.replaceAll(RegExp(r'^st '), 'sankt ');
+      t = t.replaceAll(RegExp(r'^st '), 'sankt ');
+      t = t.replaceAll('sankt.', 'sankt');
+      return t;
+    }
     
     if (raw.isEmpty) {
       return {'location': 'Germany', 'hl': 'en', 'gl': 'de'};
@@ -584,7 +608,7 @@ class JobService {
     }
 
     // Nur Land
-    final l = raw.toLowerCase();
+    final l = canon(raw);
     if (['deutschland','germany','de'].contains(l)) return {'location': 'Germany', 'hl': 'en', 'gl': 'de'};
     if (['österreich','austria','at'].contains(l)) return {'location': 'Austria', 'hl': 'en', 'gl': 'at'};
     if (['schweiz','switzerland','ch'].contains(l)) return {'location': 'Switzerland', 'hl': 'en', 'gl': 'ch'};
@@ -594,17 +618,17 @@ class JobService {
       // Deutschland - Großstädte
       'berlin': 'Berlin, Germany',
       'hamburg': 'Hamburg, Germany',
-      'münchen': 'Munich, Germany',
+      'münchen': 'Munich, Germany', 'muenchen': 'Munich, Germany', 'munchen': 'Munich, Germany',
       'munich': 'Munich, Germany',
-      'köln': 'Cologne, Germany',
+      'köln': 'Cologne, Germany', 'koeln': 'Cologne, Germany', 'koln': 'Cologne, Germany',
       'cologne': 'Cologne, Germany',
       'frankfurt': 'Frankfurt, Germany',
       'stuttgart': 'Stuttgart, Germany',
-      'düsseldorf': 'Düsseldorf, Germany',
+      'düsseldorf': 'Düsseldorf, Germany', 'duesseldorf': 'Düsseldorf, Germany', 'dusseldorf': 'Düsseldorf, Germany',
       'dresden': 'Dresden, Germany',
       'leipzig': 'Leipzig, Germany',
       'hannover': 'Hannover, Germany',
-      'nürnberg': 'Nuremberg, Germany',
+      'nürnberg': 'Nuremberg, Germany', 'nuernberg': 'Nuremberg, Germany', 'nurnberg': 'Nuremberg, Germany',
       'nuremberg': 'Nuremberg, Germany',
       'bremen': 'Bremen, Germany',
       'essen': 'Essen, Germany',
@@ -618,7 +642,7 @@ class JobService {
       'karlsruhe': 'Karlsruhe, Germany',
       'augsburg': 'Augsburg, Germany',
       'wiesbaden': 'Wiesbaden, Germany',
-      'mönchengladbach': 'Mönchengladbach, Germany',
+      'mönchengladbach': 'Mönchengladbach, Germany', 'moenchengladbach': 'Mönchengladbach, Germany',
       'gelsenkirchen': 'Gelsenkirchen, Germany',
       'braunschweig': 'Braunschweig, Germany',
       'chemnitz': 'Chemnitz, Germany',
@@ -628,7 +652,7 @@ class JobService {
       'magdeburg': 'Magdeburg, Germany',
       'freiburg': 'Freiburg, Germany',
       'krefeld': 'Krefeld, Germany',
-      'lübeck': 'Lübeck, Germany',
+      'lübeck': 'Lübeck, Germany', 'luebeck': 'Lübeck, Germany',
       'oberhausen': 'Oberhausen, Germany',
       'erfurt': 'Erfurt, Germany',
       'mainz': 'Mainz, Germany',
@@ -636,13 +660,13 @@ class JobService {
       'kassel': 'Kassel, Germany',
       'hagen': 'Hagen, Germany',
       'hamm': 'Hamm, Germany',
-      'saarbrücken': 'Saarbrücken, Germany',
-      'mülheim': 'Mülheim, Germany',
+      'saarbrücken': 'Saarbrücken, Germany', 'saarbruecken': 'Saarbrücken, Germany',
+      'mülheim': 'Mülheim, Germany', 'muelheim': 'Mülheim, Germany',
       'potsdam': 'Potsdam, Germany',
       'ludwigshafen': 'Ludwigshafen, Germany',
       'oldenburg': 'Oldenburg, Germany',
       'leverkusen': 'Leverkusen, Germany',
-      'osnabrück': 'Osnabrück, Germany',
+      'osnabrück': 'Osnabrück, Germany', 'osnabrueck': 'Osnabrück, Germany',
       'solingen': 'Solingen, Germany',
       'heidelberg': 'Heidelberg, Germany',
       'herne': 'Herne, Germany',
@@ -651,14 +675,14 @@ class JobService {
       'paderborn': 'Paderborn, Germany',
       'regensburg': 'Regensburg, Germany',
       'ingolstadt': 'Ingolstadt, Germany',
-      'würzburg': 'Würzburg, Germany',
-      'fürth': 'Fürth, Germany',
+      'würzburg': 'Würzburg, Germany', 'wuerzburg': 'Würzburg, Germany',
+      'fürth': 'Fürth, Germany', 'fuerth': 'Fürth, Germany',
       'wolfsburg': 'Wolfsburg, Germany',
       'offenbach': 'Offenbach, Germany',
       'ulm': 'Ulm, Germany',
       'heilbronn': 'Heilbronn, Germany',
       'pforzheim': 'Pforzheim, Germany',
-      'göttingen': 'Göttingen, Germany',
+      'göttingen': 'Göttingen, Germany', 'goettingen': 'Göttingen, Germany',
       'bottrop': 'Bottrop, Germany',
       'trier': 'Trier, Germany',
       'recklinghausen': 'Recklinghausen, Germany',
@@ -675,8 +699,7 @@ class JobService {
       'salzgitter': 'Salzgitter, Germany',
       
       // Österreich - Städte
-      'wien': 'Vienna, Austria',
-      'vienna': 'Vienna, Austria',
+      'wien': 'Vienna, Austria', 'vienna': 'Vienna, Austria',
       'graz': 'Graz, Austria',
       'linz': 'Linz, Austria',
       'salzburg': 'Salzburg, Austria',
@@ -684,7 +707,7 @@ class JobService {
       'klagenfurt': 'Klagenfurt, Austria',
       'villach': 'Villach, Austria',
       'wels': 'Wels, Austria',
-      'sankt pölten': 'Sankt Pölten, Austria',
+      'sankt pölten': 'Sankt Pölten, Austria', 'st pölten': 'Sankt Pölten, Austria', 'st pölten': 'Sankt Pölten, Austria', 'st polten': 'Sankt Pölten, Austria', 'st. pölten': 'Sankt Pölten, Austria', 'st. polten': 'Sankt Pölten, Austria',
       'dornbirn': 'Dornbirn, Austria',
       'steyr': 'Steyr, Austria',
       'wiener neustadt': 'Wiener Neustadt, Austria',
@@ -738,33 +761,31 @@ class JobService {
       'rankweil': 'Rankweil, Austria',
       
       // Schweiz - Städte
-      'zürich': 'Zurich, Switzerland',
-      'zurich': 'Zurich, Switzerland',
+      'zürich': 'Zurich, Switzerland', 'zurich': 'Zurich, Switzerland', 'zuerich': 'Zurich, Switzerland',
       'genf': 'Geneva, Switzerland',
       'geneva': 'Geneva, Switzerland',
       'basel': 'Basel, Switzerland',
       'bern': 'Bern, Switzerland',
       'lausanne': 'Lausanne, Switzerland',
       'winterthur': 'Winterthur, Switzerland',
-      'luzern': 'Lucerne, Switzerland',
-      'lucerne': 'Lucerne, Switzerland',
+      'luzern': 'Lucerne, Switzerland', 'lucerne': 'Lucerne, Switzerland',
       'st. gallen': 'St. Gallen, Switzerland',
       'lugano': 'Lugano, Switzerland',
       'biel': 'Biel, Switzerland',
       'thun': 'Thun, Switzerland',
-      'köniz': 'Köniz, Switzerland',
+      'köniz': 'Köniz, Switzerland', 'koeniz': 'Köniz, Switzerland',
       'la chaux-de-fonds': 'La Chaux-de-Fonds, Switzerland',
       'fribourg': 'Fribourg, Switzerland',
       'schaffhausen': 'Schaffhausen, Switzerland',
       'chur': 'Chur, Switzerland',
       'vernier': 'Vernier, Switzerland',
-      'neuchâtel': 'Neuchâtel, Switzerland',
+      'neuchâtel': 'Neuchâtel, Switzerland', 'neuchatel': 'Neuchâtel, Switzerland',
       'uster': 'Uster, Switzerland',
       'sion': 'Sion, Switzerland',
       'lancy': 'Lancy, Switzerland',
       'pully': 'Pully, Switzerland',
       'kriens': 'Kriens, Switzerland',
-      'dübendorf': 'Dübendorf, Switzerland',
+      'dübendorf': 'Dübendorf, Switzerland', 'duebendorf': 'Dübendorf, Switzerland',
       'dietikon': 'Dietikon, Switzerland',
       'montreux': 'Montreux, Switzerland',
       'rapperswil-jona': 'Rapperswil-Jona, Switzerland',
@@ -777,7 +798,7 @@ class JobService {
       'horgen': 'Horgen, Switzerland',
     };
     
-    final normalized = cityMap[raw.toLowerCase()];
+    final normalized = cityMap[canon(raw)];
     if (normalized != null) {
       return {
         'location': normalized,

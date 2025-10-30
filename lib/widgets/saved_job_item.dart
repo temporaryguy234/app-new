@@ -154,14 +154,29 @@ class SavedJobItem extends StatelessWidget {
   Widget _companyLogo(JobModel job) {
     final name = job.company.trim();
     final initials = name.isEmpty ? '•' : name.split(' ').map((w)=>w.isNotEmpty?w[0].toUpperCase():'').take(2).join('');
-    final logo = job.companyLogo;
+    final derived = _deriveLogoFromUrl(job.applicationUrl);
+    final logo = (job.companyLogo != null && job.companyLogo!.isNotEmpty) ? job.companyLogo! : (derived ?? '');
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: (logo != null && logo.isNotEmpty)
+      child: logo.isNotEmpty
           ? Image.network(logo, width: 40, height: 40, fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _initialsBox(initials))
           : _initialsBox(initials),
     );
+  }
+
+  String? _deriveLogoFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://logo.clearbit.com/$host';
   }
 
   Widget _initialsBox(String initials) {
