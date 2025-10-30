@@ -32,99 +32,88 @@ class _JobCardState extends State<JobCard> {
           child: Container(
             height: constraints.maxHeight, // fill screen height
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SingleChildScrollView(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Gradient header block with logo, title, company, meta rows and pills
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: AppColors.blueSurface,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _companyAvatar(job),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      job.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                                    ),
-                                    if ((job.company ?? '').isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
+                    // Compact white header card with logo, title, meta and chips
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _companyAvatar(job),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        job.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                      ),
+                                      if ((job.company ?? '').isNotEmpty)
+                                        const SizedBox(height: 4),
+                                      if ((job.company ?? '').isNotEmpty)
+                                        Text(
                                           job.company!,
                                           style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          if ((job.location ?? '').isNotEmpty)
-                            _meta(Icons.place_outlined, job.location!.split(',').first.trim()),
-                          if ((job.salary ?? '').isNotEmpty)
-                            _meta(Icons.payments_outlined, job.salary!),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if ((job.workType ?? '').toLowerCase().contains('remote') ||
-                                  ((job.remotePercentage ?? '').toString().isNotEmpty))
-                                _pill('Remote'),
-                              if (job.jobType.isNotEmpty) _pill(job.jobType),
-                              if ((job.experienceLevel ?? '').isNotEmpty) _pill(job.experienceLevel!),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            if ((job.location ?? '').isNotEmpty)
+                              _meta(Icons.place_outlined, job.location!.split(',').first.trim()),
+                            if ((job.salary ?? '').isNotEmpty)
+                              _meta(Icons.payments_outlined, job.salary!),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                if ((job.workType ?? '').toLowerCase().contains('remote') ||
+                                    ((job.remotePercentage ?? '').toString().isNotEmpty))
+                                  _pill('Remote'),
+                                if (job.jobType.isNotEmpty) _pill(job.jobType),
+                                if ((job.experienceLevel ?? '').isNotEmpty) _pill(job.experienceLevel!),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _sectionTitle('Kurzprofil'),
-                    const SizedBox(height: 6),
-                    Text(
-                      _summaryFromJob(job),
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+                    _sectionCard(
+                      title: 'Kurzprofil',
+                      child: Text(
+                        _summaryFromJob(job),
+                        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+                      ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
                     ...(() {
                       final req = job.requirements.isNotEmpty ? job.requirements : _compactFromParagraphOffset(job.description, 0);
                       if (req.isEmpty) return <Widget>[];
                       return [
-                        _sectionTitle('Was du können musst'),
-                        const SizedBox(height: 8),
-                        ..._bulletList(req),
-                        const SizedBox(height: 16),
+                        _sectionCard(
+                          title: 'Was du können musst',
+                          child: Column(children: _bulletList(req)),
+                        ),
+                        const SizedBox(height: 12),
                       ];
                     })(),
 
@@ -137,10 +126,11 @@ class _JobCardState extends State<JobCard> {
                       }
                       if (resp.isEmpty) return <Widget>[];
                       return [
-                        _sectionTitle('Was dich erwartet'),
-                        const SizedBox(height: 8),
-                        ..._bulletList(resp),
-                        const SizedBox(height: 16),
+                        _sectionCard(
+                          title: 'Was dich erwartet',
+                          child: Column(children: _bulletList(resp)),
+                        ),
+                        const SizedBox(height: 12),
                       ];
                     })(),
 
@@ -148,20 +138,27 @@ class _JobCardState extends State<JobCard> {
                       final bens = job.benefits.isNotEmpty ? job.benefits : _compactFromParagraph(job.companyDescription);
                       if (bens.isEmpty) return <Widget>[];
                       return [
-                        _sectionTitle('Benefits'),
-                        const SizedBox(height: 8),
-                        ..._bulletList(bens),
-                        const SizedBox(height: 16),
+                        _sectionCard(
+                          title: 'Benefits',
+                          child: Column(children: _bulletList(bens)),
+                        ),
+                        const SizedBox(height: 12),
                       ];
                     })(),
 
                     if (job.companySize.isNotEmpty || job.companyDescription.isNotEmpty || job.industry.isNotEmpty) ...[
-                      _sectionTitle('Über das Unternehmen'),
-                      const SizedBox(height: 8),
-                      if (job.industry.isNotEmpty) _bullet('Branche: ${job.industry}'),
-                      if (job.companySize.isNotEmpty) _bullet('Größe: ${job.companySize}'),
-                      if (job.companyDescription.isNotEmpty) _bullet(job.companyDescription),
-                      const SizedBox(height: 16),
+                      _sectionCard(
+                        title: 'Über das Unternehmen',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (job.industry.isNotEmpty) _bullet('Branche: ${job.industry}'),
+                            if (job.companySize.isNotEmpty) _bullet('Größe: ${job.companySize}'),
+                            if (job.companyDescription.isNotEmpty) _bullet(job.companyDescription),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                     ],
 
                     const SizedBox(height: 20),
@@ -285,7 +282,19 @@ class _JobCardState extends State<JobCard> {
           width: 48,
           height: 48,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _initialsBox(initials),
+          errorBuilder: (_, __, ___) {
+            final fav = _faviconFromUrl(job.applicationUrl);
+            if (fav != null) {
+              return Image.network(
+                fav,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _initialsBox(initials),
+              );
+            }
+            return _initialsBox(initials);
+          },
         ),
       );
     }
@@ -328,6 +337,20 @@ class _JobCardState extends State<JobCard> {
     return 'https://logo.clearbit.com/$host';
   }
 
+  String? _faviconFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://api.faviconkit.com/$host/64';
+  }
+
   Widget _keyFactsLine(JobModel job) {
     final facts = <String>[];
     
@@ -355,6 +378,22 @@ class _JobCardState extends State<JobCard> {
         fontSize: 16,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _sectionCard({required String title, required Widget child}) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle(title),
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
       ),
     );
   }

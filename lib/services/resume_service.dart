@@ -14,6 +14,7 @@ import 'resume_analysis_service.dart';
 import 'job_service.dart';
 import 'firestore_service.dart';
 import 'job_verification_service.dart';
+import '../models/filter_model.dart';
 
 class ResumeService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -507,11 +508,16 @@ class ResumeService {
     print('🔍 Query: $chosenQuery');
     print('📍 Location: $location');
 
-    // Exactly one page for cost/speed
+    // Exactly one page for cost/speed. Reiche gespeicherte Filter (inkl. Radius) durch.
+    FilterModel? persistedFilters;
+    try {
+      persistedFilters = await FirestoreService().getFilters();
+    } catch (_) {}
     final jobs = await jobService.searchJobsPaged(
       query: chosenQuery,
       location: location,
       experienceLevel: null,
+      filters: persistedFilters,
       maxPages: 1,
     );
 
@@ -528,6 +534,7 @@ class ResumeService {
         query: q2,
         location: location,
         experienceLevel: null,
+        filters: persistedFilters,
         maxPages: 1,
       );
       if (more.isNotEmpty) return _dedupeJobs(more);

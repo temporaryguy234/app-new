@@ -455,12 +455,9 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
     // 1) Deduplicate by company + normalized title (ignore location/url noise)
     final unique = _dedupeByKey(jobs);
 
-    // 2) Sort newest first if postedAt exists, otherwise stable
-    unique.sort((a, b) {
-      final ad = a.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bd = b.postedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bd.compareTo(ad);
-    });
+    // 2) Score jobs (salary/remote/recency/keywords) and sort by score desc
+    double score(JobModel j) => _scoreJobForSpecials(j);
+    unique.sort((a, b) => score(b).compareTo(score(a)));
 
     // 3) Helper to pick diverse set by company
     List<JobModel> pickDiverse(List<JobModel> list, int count) {
@@ -513,6 +510,34 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
 
     _teasers = teasers;
     _alsoLike = also.take(8).toList();
+  }
+
+  // Strong scoring towards the most attractive jobs for the hero cards
+  double _scoreJobForSpecials(JobModel j) {
+    double s = 0;
+    // Recency (max +20)
+    final dt = j.postedAt ?? DateTime.now();
+    final ageDays = DateTime.now().difference(dt).inDays.toDouble();
+    s += (20 - ageDays).clamp(0, 20);
+    // Salary (max +25)
+    if ((j.salary ?? '').isNotEmpty) {
+      s += 15;
+      if (RegExp(r'(€|eur|k|\d)', caseSensitive: false).hasMatch(j.salary!)) s += 10;
+    }
+    // Remote/Hybrid (max +15)
+    final wt = ('${j.workType} ${j.jobType} ${j.tags.join(' ')}').toLowerCase();
+    if (wt.contains('remote')) s += 15; else if (wt.contains('hybrid')) s += 8;
+    // Experience clarity (max +6)
+    if ((j.experienceLevel ?? '').isNotEmpty) s += 6;
+    // Benefits keywords that hook (max +12)
+    final benefits = j.benefits.join(' ').toLowerCase();
+    if (RegExp(r'(bonus|beteiligung|aktien|weiterbildung|mentor|4-?tage|unbefristet)', caseSensitive: false).hasMatch(benefits)) s += 12;
+    // Company size/industry present (+4)
+    if (j.companySize.isNotEmpty || j.industry.isNotEmpty) s += 4;
+    // Start asap (+8)
+    final txt = ('${j.description ?? ''} ${j.benefits.join(' ')}').toLowerCase();
+    if (RegExp(r'(ab sofort|per sofort|sofortiger start|start:? ?(im|ab)?)').hasMatch(txt)) s += 8;
+    return s;
   }
 
   Widget _gridJobCard(JobModel job) {
@@ -597,7 +622,7 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
 
   // Small company avatar/logo helper
   Widget _companyLogoChip(JobModel job, {double size = 24}) {
-    final logo = job.companyLogo;
+    final logo = job.companyLogo?.isNotEmpty == true ? job.companyLogo : _deriveLogoFromUrl(job.applicationUrl);
     final company = job.company.trim();
     final initials = company.isNotEmpty
         ? company.split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').take(2).join('')
@@ -611,11 +636,51 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _initialsBox(initials, size),
+          errorBuilder: (_, __, ___) {
+            final fav = _faviconFromUrl(job.applicationUrl);
+            if (fav != null) {
+              return Image.network(
+                fav,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _initialsBox(initials, size),
+              );
+            }
+            return _initialsBox(initials, size);
+          },
         ),
       );
     }
     return _initialsBox(initials, size);
+  }
+
+  String? _deriveLogoFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://logo.clearbit.com/$host';
+  }
+
+  String? _faviconFromUrl(String? applyUrl) {
+    if (applyUrl == null || applyUrl.isEmpty) return null;
+    Uri? uri;
+    try { uri = Uri.parse(applyUrl); } catch (_) { return null; }
+    if (uri.host.isEmpty) return null;
+    final host = uri.host.toLowerCase();
+    const blocked = [
+      'linkedin.com', 'indeed.', 'stepstone.', 'arbeitsagentur.', 'monster.', 'glassdoor.', 'xing.',
+      'job', 'karriere', 'stellen', 'jooble', 'workwise.', 'ziprecruiter.'
+    ];
+    if (blocked.any((b) => host.contains(b))) return null;
+    return 'https://api.faviconkit.com/$host/64';
   }
 
   Widget _initialsBox(String initials, double size) {
@@ -730,8 +795,21 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
   }
 
   String _buildHookSentence(JobModel j) {
-    // Lead line is always the same to create a strong CTA
-    return 'Bewirb dich hier, wenn du...';
+    final city = j.location.split(',').first.trim();
+    final hasRemote = ('${j.workType} ${j.jobType}'.toLowerCase().contains('remote'));
+    final hasSalary = (j.salary ?? '').isNotEmpty;
+    final isFresh = j.postedAt != null && DateTime.now().difference(j.postedAt!).inHours <= 24;
+
+    final templates = <String>[
+      'Bewirb dich hier, wenn du ${hasRemote ? 'Remote‑Flexibilität' : 'klare Aufgaben'} suchst.',
+      'Hier ist etwas anders: ehrliche Kultur, ${hasSalary ? 'faires Gehalt' : 'klare Entwicklung'} und ein starkes Team.',
+      'Passend für dich, wenn du moderne Tools und ${hasRemote ? 'Homeoffice' : city} magst.',
+      if (isFresh) 'Jetzt ist die beste Zeit – frisch veröffentlicht und wenige Bewerber.'
+    ];
+
+    // deterministische Auswahl pro Job, ohne Zufall
+    final idx = (j.title.hashCode.abs() + j.company.hashCode.abs()) % templates.length;
+    return templates[idx];
   }
 
   String _hookSubtext(JobModel j) {
@@ -802,6 +880,13 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
 
   Widget _factChips(JobModel j) {
     final facts = <(String, Color, Color)>[];
+
+    // Emphasis: wenige Bewerber (grün)
+    bool fewApplicants(JobModel j) {
+      final hours = j.postedAt != null ? DateTime.now().difference(j.postedAt!).inHours : 999;
+      if (j.applicantCount != null) return j.applicantCount! <= 10;
+      return hours <= 48;
+    }
 
     // Core job info chips
     if ((j.workType ?? '').isNotEmpty) facts.add((j.workType!, const Color(0xFFDBEAFE), const Color(0xFF1D4ED8))); // richer blue
@@ -912,6 +997,9 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
     ];
 
     final chipWidgets = <Widget>[];
+    if (fewApplicants(j)) {
+      chipWidgets.add(_emphasisChip('Wenige Bewerber', const Color(0xFFE8F7EF), const Color(0xFF0F9D58)));
+    }
     for (int i = 0; i < labels.length; i++) {
       final (bg, fg) = palette[i % palette.length];
       chipWidgets.add(_factChip(labels[i], bg, fg));
@@ -934,6 +1022,18 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
         shape: StadiumBorder(side: BorderSide(color: AppColors.ink200)),
       ),
       child: Text(text, style: const TextStyle(color: AppColors.ink700, fontSize: 12, fontWeight: FontWeight.w700)),
+    );
+  }
+
+  Widget _emphasisChip(String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: fg.withOpacity(0.25)),
+      ),
+      child: Text(text, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w800)),
     );
   }
 
@@ -1119,6 +1219,12 @@ class _SpecialsScreenState extends State<SpecialsScreen> {
     final hasRemote = wtLower.contains('remote') ||
         (j.remotePercentage is num && (j.remotePercentage as num) > 0);
     if (hasRemote) facts.add('Remote möglich');
+
+    // Start asap
+    final asapTxt = ('${j.description ?? ''} ${j.benefits.join(' ')}').toLowerCase();
+    if (RegExp(r'(ab sofort|per sofort|sofortiger start)').hasMatch(asapTxt)) {
+      facts.add('Ab sofort');
+    }
 
     if (facts.length < 3 && j.benefits.isNotEmpty) facts.add(j.benefits.first);
     // Enrich with tags or skills if still too few

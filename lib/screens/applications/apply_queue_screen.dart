@@ -25,6 +25,8 @@ class _ApplyQueueScreenState extends State<ApplyQueueScreen> {
   final Set<String> _applied = {};
   bool _hideNoUrl = false;
   bool _hideApplied = true;
+  int _runOpened = 0; // geöffnete Bewerbungen im aktuellen Lauf
+  int _runTotal = 0;  // geplante Bewerbungen im aktuellen Lauf
 
   @override
   void initState() {
@@ -71,7 +73,11 @@ class _ApplyQueueScreenState extends State<ApplyQueueScreen> {
         .toList();
     final toApply = batchSize == null ? allSelected : allSelected.take(batchSize).toList();
     if (toApply.isEmpty) return;
-    setState(() => _running = true);
+    setState(() {
+      _running = true;
+      _runOpened = 0;
+      _runTotal = toApply.length;
+    });
     for (final job in toApply) {
       try {
         final uri = Uri.parse(job.applicationUrl!);
@@ -90,6 +96,7 @@ class _ApplyQueueScreenState extends State<ApplyQueueScreen> {
         _applied.add(job.id);
         _selected.remove(job.id);
       } catch (_) {}
+      if (mounted) setState(() => _runOpened++);
     }
     if (!mounted) return;
     setState(() => _running = false);
@@ -205,7 +212,7 @@ class _ApplyQueueScreenState extends State<ApplyQueueScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _selected.isEmpty || _running ? null : _confirmAndStart,
-              child: Text(_running ? 'Wird geöffnet...' : 'Jetzt bewerben (${_selected.length})'),
+              child: Text(_running ? 'Wird geöffnet... (${_runOpened}/${_runTotal})' : 'Jetzt bewerben (${_selected.length})'),
             ),
           ),
         ),
